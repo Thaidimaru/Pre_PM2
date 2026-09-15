@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, ShieldCheck, Menu, X, Sun, Moon } from 'lucide-react';
+import { Calendar, Clock, Menu, X, Sun, Moon } from 'lucide-react';
 import { APP_VERSION } from '@/version';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
@@ -182,22 +182,7 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
               )}
             </button>
 
-            <div className={cn('h-6 w-px', isDark ? 'bg-slate-700/60' : 'bg-slate-300')} />
 
-            {/* User profile */}
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 text-white shadow-[0_0_12px_rgba(8,127,255,0.4)]">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div className="text-left leading-normal space-y-0.5">
-                <div className={cn('text-xs font-semibold', isDark ? 'text-white' : 'text-slate-900')}>
-                  ผู้ดูแลระบบ
-                </div>
-                <div className={cn('text-[10px]', isDark ? 'text-slate-400' : 'text-slate-500')}>
-                  Administrator
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

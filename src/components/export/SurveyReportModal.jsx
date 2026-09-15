@@ -258,11 +258,11 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                 {/* 1. Header with Logos & Project Title */}
                 <div className="flex items-center justify-between pb-1.5 border-b-2 border-black mb-1.5">
                   {/* Left Logo - NBTC */}
-                  <div className="w-24 shrink-0 flex items-center justify-start">
+                  <div className="w-28 shrink-0 flex items-center justify-start">
                     <img
                       src={nbtcLogo}
                       alt="NBTC Logo"
-                      style={{ height: '48px', width: 'auto' }}
+                      style={{ height: '52px', width: 'auto' }}
                       className="object-contain"
                       onError={(e) => {
                         e.currentTarget.src = '/nbtc-logo-dashboard.png';
@@ -287,11 +287,11 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                   </div>
 
                   {/* Right Logo - FORTH */}
-                  <div className="w-24 shrink-0 flex items-center justify-end">
+                  <div className="w-28 shrink-0 flex items-center justify-end">
                     <img
                       src={forthLogo}
                       alt="FORTH Logo"
-                      style={{ height: '26px', width: 'auto' }}
+                      style={{ height: '24px', width: 'auto' }}
                       className="object-contain"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
@@ -602,11 +602,11 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                 <div>
                   {/* Header for Appendix */}
                   <div className="flex items-center justify-between pb-2 border-b-2 border-black mb-3">
-                    <div className="w-24 shrink-0 flex items-center justify-start">
+                    <div className="w-28 shrink-0 flex items-center justify-start">
                       <img
                         src={nbtcLogo}
                         alt="NBTC Logo"
-                        style={{ height: '46px', width: 'auto' }}
+                        style={{ height: '52px', width: 'auto' }}
                         className="object-contain"
                         onError={(e) => {
                           e.currentTarget.src = '/nbtc-logo-dashboard.png';
@@ -621,11 +621,11 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         สถานี: <span className="font-bold text-black">{stationName}</span> | รหัสรายการ: <span className="font-mono font-bold">{recordId}</span> | วันที่: {visitDateStr}
                       </p>
                     </div>
-                    <div className="w-24 shrink-0 flex items-center justify-end">
+                    <div className="w-28 shrink-0 flex items-center justify-end">
                       <img
                         src={forthLogo}
                         alt="FORTH Logo"
-                        style={{ height: '26px', width: 'auto' }}
+                        style={{ height: '24px', width: 'auto' }}
                         className="object-contain"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
