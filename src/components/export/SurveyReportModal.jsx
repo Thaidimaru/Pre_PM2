@@ -662,7 +662,7 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
 
                 {/* Footer for Photo Appendix Page */}
                 <div className="pt-1.5 mt-2 border-t border-black/30 flex justify-between items-center text-[11px] text-neutral-600">
-                  <span>โครงการบำรุงรักษาเชิงป้องกันล่วงหน้า (Pre-Preventive Maintenance: Pre-PM) — {stationName}</span>
+                  <span>การบำรุงรักษาเชิงป้องกันล่วงหน้า (Pre-Preventive Maintenance: Pre-PM) — {stationName}</span>
                   <span>หน้า {pageIndex + 2} จาก {totalPages}</span>
                 </div>
               </div>
