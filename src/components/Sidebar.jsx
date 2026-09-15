@@ -71,8 +71,8 @@ export function Sidebar({ currentPage, onNavigate, mobileOpen, onClose }) {
                           ? 'bg-gradient-to-r from-blue-600/30 to-cyan-500/15 text-white border border-blue-500/40 shadow-[0_0_20px_rgba(8,127,255,0.2)]'
                           : 'bg-sky-50 text-sky-800 border border-sky-300 shadow-xs'
                         : isDark
-                        ? 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200 border border-transparent'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
+                          ? 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200 border border-transparent'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
                     )}
                   >
                     <div
@@ -83,8 +83,8 @@ export function Sidebar({ currentPage, onNavigate, mobileOpen, onClose }) {
                             ? 'bg-blue-500/30 text-cyan-300'
                             : 'bg-sky-100 text-sky-600'
                           : isDark
-                          ? 'bg-slate-800/60 text-slate-400 group-hover:text-slate-200'
-                          : 'bg-slate-100 text-slate-500 group-hover:text-slate-700'
+                            ? 'bg-slate-800/60 text-slate-400 group-hover:text-slate-200'
+                            : 'bg-slate-100 text-slate-500 group-hover:text-slate-700'
                       )}
                     >
                       <Icon className="h-5 w-5" />
@@ -167,7 +167,7 @@ export function Sidebar({ currentPage, onNavigate, mobileOpen, onClose }) {
             <span className="h-5.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ animationDelay: '600ms' }} />
           </div>
           <div className={cn('text-xs font-bold tracking-wider', isDark ? 'text-slate-200' : 'text-slate-800')}>
-            NBTC MICROWAVE
+            NBTC
           </div>
           <div className={cn('text-[11px]', isDark ? 'text-slate-400' : 'text-slate-500')}>
             Pre-PM Survey v{APP_VERSION}
