@@ -82,7 +82,7 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
           year: 'numeric'
         });
       }
-    } catch {}
+    } catch { }
   }
   if (visitDateStr === '-') {
     visitDateStr = new Date().toLocaleDateString('th-TH', {
@@ -398,7 +398,7 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         <td className="border border-black py-1 px-3">
                           <span className={`inline-flex items-center font-bold px-2 py-0.5 rounded text-[12px] ${isPermitted ? 'bg-emerald-50 text-emerald-900 border border-emerald-500' : 'bg-rose-50 text-rose-900 border border-rose-500'
                             }`}>
-                            {isPermitted ? '✓ อนุญาตให้เข้าพื้นที่' : '✗ ไม่อนุญาตให้เข้าพื้นที่'}
+                            {isPermitted ? 'อนุญาตให้เข้าพื้นที่' : 'ไม่อนุญาตให้เข้าพื้นที่'}
                           </span>
                         </td>
                         <td className="border border-black py-1 px-3 font-bold bg-neutral-50/80">
@@ -435,9 +435,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                         <td className="border border-black py-1 px-2 text-center font-semibold">
                           {isRadioNormal ? (
-                            <span className="text-emerald-800 font-bold">✓ ปกติ</span>
+                            <span className="text-emerald-800 font-bold">ปกติ</span>
                           ) : (
-                            <span className="text-rose-700 font-bold">✗ ไม่ปกติ ({radioStatus})</span>
+                            <span className="text-rose-700 font-bold">ไม่ปกติ ({radioStatus})</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
@@ -453,9 +453,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                         <td className="border border-black py-1 px-2 text-center font-semibold">
                           {isReceiveNormal ? (
-                            <span className="text-emerald-800 font-bold">✓ ไม่พบปัญหา</span>
+                            <span className="text-emerald-800 font-bold">ไม่พบปัญหา</span>
                           ) : (
-                            <span className="text-rose-700 font-bold">✗ พบปัญหา ({receiveStatus})</span>
+                            <span className="text-rose-700 font-bold">พบปัญหา ({receiveStatus})</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
@@ -471,9 +471,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                         <td className="border border-black py-1 px-2 text-center font-semibold">
                           {isTransmitNormal ? (
-                            <span className="text-emerald-800 font-bold">✓ ไม่พบปัญหา</span>
+                            <span className="text-emerald-800 font-bold">ไม่พบปัญหา</span>
                           ) : (
-                            <span className="text-rose-700 font-bold">✗ พบปัญหา ({transmitStatus})</span>
+                            <span className="text-rose-700 font-bold">พบปัญหา ({transmitStatus})</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
@@ -489,9 +489,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                         <td className="border border-black py-1 px-2 text-center font-semibold">
                           {isPowerNormal ? (
-                            <span className="text-emerald-800 font-bold">✓ ไม่มีปัญหา</span>
+                            <span className="text-emerald-800 font-bold">ไม่มีปัญหา</span>
                           ) : (
-                            <span className="text-rose-700 font-bold">✗ มีปัญหา ({powerStatus})</span>
+                            <span className="text-rose-700 font-bold">มีปัญหา ({powerStatus})</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
@@ -507,9 +507,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                         <td className="border border-black py-1 px-2 text-center font-semibold">
                           {isBatteryNormal ? (
-                            <span className="text-emerald-800 font-bold">✓ ไม่มีปัญหา</span>
+                            <span className="text-emerald-800 font-bold">ไม่มีปัญหา</span>
                           ) : (
-                            <span className="text-rose-700 font-bold">✗ มีปัญหา ({batteryStatus})</span>
+                            <span className="text-rose-700 font-bold">มีปัญหา ({batteryStatus})</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
