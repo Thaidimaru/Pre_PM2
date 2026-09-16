@@ -103,8 +103,8 @@ export function RecentSurveys({ recent = [], onNavigate }) {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className={cn('border-b text-xs font-semibold', isDark ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-500')}>
-                <th className="pb-2.5 pr-3">รหัสรายการ (Preview)</th>
-                <th className="pb-2.5 px-3">สถานี (Preview)</th>
+                <th className="pb-2.5 pr-3">รหัสรายการ</th>
+                <th className="pb-2.5 px-3">สถานี</th>
                 <th className="pb-2.5 px-3">จังหวัด</th>
                 <th className="pb-2.5 px-3 text-center">ผล</th>
                 <th className="pb-2.5 px-3 text-right">เวลาบันทึก</th>
