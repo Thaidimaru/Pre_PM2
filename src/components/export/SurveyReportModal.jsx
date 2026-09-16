@@ -275,16 +275,16 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
 
                   {/* Center Title - NBTC Microwave Project Title */}
                   <div className="flex-1 min-w-0 text-center px-1 space-y-0.5">
-                    <h1 className="text-[16px] font-bold leading-tight tracking-normal whitespace-nowrap text-black">
-                      การจัดซื้ออุปกรณ์พร้อมดำเนินการติดตั้ง
-                    </h1>
-                    <h2 className="text-[14.5px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-900">
+                    <h1 className="text-[13.5px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-900">
                       โครงการเพิ่มประสิทธิภาพระบบโครงข่ายสื่อสารด้วยอุปกรณ์ทวนสัญญาณผ่านคลื่นความถี่สูง (SHF)
+                    </h1>
+                    <h2 className="text-[13.5px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-700">
+                      เพื่อสนับสนุนการปฏิบัติราชการและแก้ไขปัญหาให้กับประชาชนในพื้นที่ห่างไกล
                     </h2>
                     <h3 className="text-[13.5px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-800">
-                      เพื่อสนับสนุนการปฏิบัติราชการและแก้ไขปัญหาให้กับประชาชนในพื้นที่ห่างไกล
+                      การจัดซื้ออุปกรณ์พร้อมดำเนินการติดตั้ง
                     </h3>
-                    <h4 className="text-[13px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-700">
+                    <h4 className="text-[13.5px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-700">
                       สัญญาเลขที่ ๘๖๘๐๒๒๘ ลงวันที่ ๒๓ กรกฎาคม ๒๕๖๘
                     </h4>
                   </div>
