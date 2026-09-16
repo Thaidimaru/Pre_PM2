@@ -116,17 +116,17 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
   const radioStatus = fields.radioStatus || fields.radio_status || 'ปกติ';
   const isRadioNormal = radioStatus === 'ปกติ';
 
-  const receiveStatus = fields.receiveStatus || fields.receive_status || 'ไม่พบ';
-  const isReceiveNormal = receiveStatus === 'ไม่พบ' || receiveStatus === 'ไม่พบปัญหา';
+  const receiveStatus = fields.receiveStatus || fields.receive_status || 'ปกติ';
+  const isReceiveNormal = receiveStatus === 'ปกติ' || receiveStatus === 'ไม่พบ' || receiveStatus === 'ไม่พบปัญหา';
 
-  const transmitStatus = fields.transmitStatus || fields.transmit_status || 'ไม่พบ';
-  const isTransmitNormal = transmitStatus === 'ไม่พบ' || transmitStatus === 'ไม่พบปัญหา';
+  const transmitStatus = fields.transmitStatus || fields.transmit_status || 'ปกติ';
+  const isTransmitNormal = transmitStatus === 'ปกติ' || transmitStatus === 'ไม่พบ' || transmitStatus === 'ไม่พบปัญหา';
 
-  const powerStatus = fields.powerStatus || fields.power_status || 'ไม่มี';
-  const isPowerNormal = powerStatus === 'ไม่มี' || powerStatus === 'ไม่มีปัญหา';
+  const powerStatus = fields.powerStatus || fields.power_status || 'ปกติ';
+  const isPowerNormal = powerStatus === 'ปกติ' || powerStatus === 'ไม่มี' || powerStatus === 'ไม่มีปัญหา';
 
-  const batteryStatus = fields.batteryStatus || fields.battery_status || 'ไม่มี';
-  const isBatteryNormal = batteryStatus === 'ไม่มี' || batteryStatus === 'ไม่มีปัญหา';
+  const batteryStatus = fields.batteryStatus || fields.battery_status || 'ปกติ';
+  const isBatteryNormal = batteryStatus === 'ปกติ' || batteryStatus === 'ไม่มี' || batteryStatus === 'ไม่มีปัญหา';
 
   const userProblem = fields.userProblem || fields.user_problem || 'ไม่พบปัญหาเพิ่มเติม';
 

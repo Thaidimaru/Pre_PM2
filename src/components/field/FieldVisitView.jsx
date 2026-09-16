@@ -45,10 +45,10 @@ export function FieldVisitView({ onNavigate }) {
   const [formData, setFormData] = useState({
     permit: 'อนุญาต',
     radioStatus: 'ปกติ',
-    receiveStatus: 'ไม่พบ',
-    transmitStatus: 'ไม่พบ',
-    powerStatus: 'ไม่มี',
-    batteryStatus: 'ไม่มี'
+    receiveStatus: 'ปกติ',
+    transmitStatus: 'ปกติ',
+    powerStatus: 'ปกติ',
+    batteryStatus: 'ปกติ'
   });
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [statusMessage, setStatusMessage] = useState({ text: '', type: '' });
@@ -79,7 +79,13 @@ export function FieldVisitView({ onNavigate }) {
   }, []);
 
   const updateField = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'receiveStatus') {
+        next.transmitStatus = value;
+      }
+      return next;
+    });
   };
 
   // Auto-fill installation and contact details when station is selected
@@ -181,10 +187,10 @@ export function FieldVisitView({ onNavigate }) {
       setFormData({
         permit: 'อนุญาต',
         radioStatus: 'ปกติ',
-        receiveStatus: 'ไม่พบ',
-        transmitStatus: 'ไม่พบ',
-        powerStatus: 'ไม่มี',
-        batteryStatus: 'ไม่มี'
+        receiveStatus: 'ปกติ',
+        transmitStatus: 'ปกติ',
+        powerStatus: 'ปกติ',
+        batteryStatus: 'ปกติ'
       });
       setSelectedPhotos([]);
     } catch (err) {
@@ -497,10 +503,9 @@ export function FieldVisitView({ onNavigate }) {
                 <tbody className={cn('divide-y', isDark ? 'divide-slate-800/50' : 'divide-slate-200')}>
                   {[
                     ['radioStatus', 'สามารถใช้งานเครื่องวิทยุได้ตามปกติ', ['ปกติ', 'ไม่ปกติ']],
-                    ['receiveStatus', 'พบปัญหาการรับสัญญาณ', ['ไม่พบ', 'พบ']],
-                    ['transmitStatus', 'พบปัญหาการส่งสัญญาณ', ['ไม่พบ', 'พบ']],
-                    ['powerStatus', 'ระบบไฟฟ้ามีปัญหาหรือไม่', ['ไม่มี', 'มี']],
-                    ['batteryStatus', 'แบตเตอรี่สำรองมีปัญหาหรือไม่', ['ไม่มี', 'มี']]
+                    ['receiveStatus', 'การรับ ส่งสัญญาณ', ['ปกติ', 'ไม่ปกติ']],
+                    ['powerStatus', 'การทำงานของระบบไฟฟ้า', ['ปกติ', 'ไม่ปกติ']],
+                    ['batteryStatus', 'การทำงานของแบตเตอรี่สำรอง', ['ปกติ', 'ไม่ปกติ']]
                   ].map(([key, label, options]) => (
                     <tr
                       key={key}
