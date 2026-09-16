@@ -276,11 +276,14 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                   {/* Center Title - NBTC Microwave Project Title */}
                   <div className="flex-1 min-w-0 text-center px-1 space-y-1">
                     <h1 className="text-[12px] sm:text-[12.5px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-900">
-                      โครงการเพิ่มประสิทธิภาพระบบโครงข่ายสื่อสารด้วยอุปกรณ์ทวนสัญญาณผ่านคลื่นความถี่สูง (SHF) เพื่อสนับสนุนการปฏิบัติราชการและแก้ไขปัญหาให้กับประชาชนในพื้นที่ห่างไกล
+                      โครงการเพิ่มประสิทธิภาพระบบโครงข่ายสื่อสารด้วยอุปกรณ์ทวนสัญญาณผ่านคลื่นความถี่สูง (SHF)
                     </h1>
                     <h2 className="text-[12.5px] sm:text-[13px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-700">
-                      สัญญาเลขที่ ๘๖๘๐๒๒๘ ลงวันที่ ๒๓ กรกฎาคม ๒๕๖๘
+                      เพื่อสนับสนุนการปฏิบัติราชการและแก้ไขปัญหาให้กับประชาชนในพื้นที่ห่างไกล
                     </h2>
+                    <h3 className="text-[12.5px] sm:text-[13px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-700">
+                      สัญญาเลขที่ ๘๖๘๐๒๒๘ ลงวันที่ ๒๓ กรกฎาคม ๒๕๖๘
+                    </h3>
                   </div>
 
                   {/* Right Logo - FORTH */}
