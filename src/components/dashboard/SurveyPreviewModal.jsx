@@ -407,7 +407,7 @@ export function SurveyPreviewModal({
                       <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
                         isRadioNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
                       }`}>
-                        {radioStatus}
+                        {isRadioNormal ? 'ปกติ' : 'ไม่ปกติ'}
                       </span>
                     </td>
                     <td className={cn('py-2 px-2.5', labelClass)}>{isRadioNormal ? 'เครื่องวิทยุทำงานปกติ' : 'พบข้อขัดข้องในการใช้งาน'}</td>
@@ -418,7 +418,7 @@ export function SurveyPreviewModal({
                       <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
                         isReceiveNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
                       }`}>
-                        {receiveStatus}
+                        {isReceiveNormal ? 'ปกติ' : 'ไม่ปกติ'}
                       </span>
                     </td>
                     <td className={cn('py-2 px-2.5', labelClass)}>{isReceiveNormal ? 'รับสัญญาณได้ชัดเจน' : 'สัญญาณขาดหาย/มีสัญญาณรบกวน'}</td>
@@ -429,7 +429,7 @@ export function SurveyPreviewModal({
                       <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
                         isTransmitNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
                       }`}>
-                        {transmitStatus}
+                        {isTransmitNormal ? 'ปกติ' : 'ไม่ปกติ'}
                       </span>
                     </td>
                     <td className={cn('py-2 px-2.5', labelClass)}>{isTransmitNormal ? 'ส่งสัญญาณออกอากาศได้ตามปกติ' : 'กำลังส่งตก/ส่งสัญญาณไม่ได้'}</td>
@@ -440,7 +440,7 @@ export function SurveyPreviewModal({
                       <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
                         isPowerNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
                       }`}>
-                        {powerStatus}
+                        {isPowerNormal ? 'ปกติ' : 'ไม่ปกติ'}
                       </span>
                     </td>
                     <td className={cn('py-2 px-2.5', labelClass)}>{isPowerNormal ? 'ระบบไฟฟ้าจ่ายไฟสม่ำเสมอ' : 'ระบบไฟฟ้าขัดข้อง/ไฟตกบ่อย'}</td>
@@ -451,7 +451,7 @@ export function SurveyPreviewModal({
                       <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
                         isBatteryNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
                       }`}>
-                        {batteryStatus}
+                        {isBatteryNormal ? 'ปกติ' : 'ไม่ปกติ'}
                       </span>
                     </td>
                     <td className={cn('py-2 px-2.5', labelClass)}>{isBatteryNormal ? 'แบตเตอรี่สำรองพร้อมจ่ายไฟ' : 'แบตเตอรี่เสื่อม/เก็บไฟไม่อยู่'}</td>
@@ -462,7 +462,7 @@ export function SurveyPreviewModal({
                       <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
                         isGroundNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
                       }`}>
-                        {groundStatus}
+                        {isGroundNormal ? 'ปกติ' : 'ไม่ปกติ'}
                       </span>
                     </td>
                     <td className={cn('py-2 px-2.5', labelClass)}>{isGroundNormal ? 'ระบบกราวด์สมบูรณ์ ต่อลงดินเรียบร้อย' : 'ระบบกราวด์มีปัญหา/หลุดหลวม'}</td>

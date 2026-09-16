@@ -440,7 +440,7 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                           {isRadioNormal ? (
                             <span className="text-emerald-800 font-bold">ปกติ</span>
                           ) : (
-                            <span className="text-rose-700 font-bold">ไม่ปกติ ({radioStatus})</span>
+                            <span className="text-rose-700 font-bold">ไม่ปกติ</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
@@ -456,9 +456,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                         <td className="border border-black py-1 px-2 text-center font-semibold">
                           {isReceiveNormal ? (
-                            <span className="text-emerald-800 font-bold">ไม่พบปัญหา</span>
+                            <span className="text-emerald-800 font-bold">ปกติ</span>
                           ) : (
-                            <span className="text-rose-700 font-bold">พบปัญหา ({receiveStatus})</span>
+                            <span className="text-rose-700 font-bold">ไม่ปกติ</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
@@ -474,9 +474,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                         <td className="border border-black py-1 px-2 text-center font-semibold">
                           {isTransmitNormal ? (
-                            <span className="text-emerald-800 font-bold">ไม่พบปัญหา</span>
+                            <span className="text-emerald-800 font-bold">ปกติ</span>
                           ) : (
-                            <span className="text-rose-700 font-bold">พบปัญหา ({transmitStatus})</span>
+                            <span className="text-rose-700 font-bold">ไม่ปกติ</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
@@ -492,9 +492,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                         <td className="border border-black py-1 px-2 text-center font-semibold">
                           {isPowerNormal ? (
-                            <span className="text-emerald-800 font-bold">ไม่มีปัญหา</span>
+                            <span className="text-emerald-800 font-bold">ปกติ</span>
                           ) : (
-                            <span className="text-rose-700 font-bold">มีปัญหา ({powerStatus})</span>
+                            <span className="text-rose-700 font-bold">ไม่ปกติ</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
@@ -510,9 +510,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                         <td className="border border-black py-1 px-2 text-center font-semibold">
                           {isBatteryNormal ? (
-                            <span className="text-emerald-800 font-bold">ไม่มีปัญหา</span>
+                            <span className="text-emerald-800 font-bold">ปกติ</span>
                           ) : (
-                            <span className="text-rose-700 font-bold">มีปัญหา ({batteryStatus})</span>
+                            <span className="text-rose-700 font-bold">ไม่ปกติ</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
@@ -530,7 +530,7 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                           {isGroundNormal ? (
                             <span className="text-emerald-800 font-bold">ปกติ</span>
                           ) : (
-                            <span className="text-rose-700 font-bold">ไม่ปกติ ({groundStatus})</span>
+                            <span className="text-rose-700 font-bold">ไม่ปกติ</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
