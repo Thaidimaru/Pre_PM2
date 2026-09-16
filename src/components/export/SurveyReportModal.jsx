@@ -261,7 +261,7 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                 {/* 1. Header with Logos & Project Title */}
                 <div className="flex items-center justify-between pb-1.5 border-b-2 border-black mb-1.5">
                   {/* Left Logo - NBTC */}
-                  <div className="w-32 shrink-0 flex items-center justify-start">
+                  <div className="w-24 shrink-0 flex items-center justify-start">
                     <img
                       src={nbtcLogo}
                       alt="NBTC Logo"
@@ -274,23 +274,17 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                   </div>
 
                   {/* Center Title - NBTC Microwave Project Title */}
-                  <div className="flex-1 min-w-0 text-center px-1 space-y-0.5">
-                    <h1 className="text-[13.5px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-900">
-                      โครงการเพิ่มประสิทธิภาพระบบโครงข่ายสื่อสารด้วยอุปกรณ์ทวนสัญญาณผ่านคลื่นความถี่สูง (SHF)
+                  <div className="flex-1 min-w-0 text-center px-1 space-y-1">
+                    <h1 className="text-[12px] sm:text-[12.5px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-900">
+                      โครงการเพิ่มประสิทธิภาพระบบโครงข่ายสื่อสารด้วยอุปกรณ์ทวนสัญญาณผ่านคลื่นความถี่สูง (SHF) เพื่อสนับสนุนการปฏิบัติราชการและแก้ไขปัญหาให้กับประชาชนในพื้นที่ห่างไกล
                     </h1>
-                    <h2 className="text-[13.5px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-700">
-                      เพื่อสนับสนุนการปฏิบัติราชการและแก้ไขปัญหาให้กับประชาชนในพื้นที่ห่างไกล
-                    </h2>
-                    <h3 className="text-[13.5px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-800">
-                      การจัดซื้ออุปกรณ์พร้อมดำเนินการติดตั้ง
-                    </h3>
-                    <h4 className="text-[13.5px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-700">
+                    <h2 className="text-[12.5px] sm:text-[13px] font-bold leading-tight tracking-normal whitespace-nowrap text-neutral-700">
                       สัญญาเลขที่ ๘๖๘๐๒๒๘ ลงวันที่ ๒๓ กรกฎาคม ๒๕๖๘
-                    </h4>
+                    </h2>
                   </div>
 
                   {/* Right Logo - FORTH */}
-                  <div className="w-32 shrink-0 flex items-center justify-end">
+                  <div className="w-24 shrink-0 flex items-center justify-end">
                     <img
                       src={forthLogo}
                       alt="FORTH Logo"
