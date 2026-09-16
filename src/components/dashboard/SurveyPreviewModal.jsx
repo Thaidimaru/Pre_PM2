@@ -119,6 +119,9 @@ export function SurveyPreviewModal({
   const batteryStatus = fields.batteryStatus || fields.battery_status || 'ปกติ';
   const isBatteryNormal = batteryStatus === 'ปกติ' || batteryStatus === 'ไม่มี' || batteryStatus === 'ไม่มีปัญหา';
 
+  const groundStatus = fields.groundStatus || fields.ground_status || 'ปกติ';
+  const isGroundNormal = groundStatus === 'ปกติ' || groundStatus === 'ไม่มี' || groundStatus === 'ไม่มีปัญหา' || groundStatus === 'ไม่พบ';
+
   const userProblem = fields.userProblem || fields.user_problem || 'ไม่พบปัญหาเพิ่มเติม';
   const siteCondition = fields.siteCondition || fields.site_condition || 'สภาพพื้นที่ปกติ พร้อมสำหรับการปฏิบัติงาน';
   const antennaCondition = fields.antennaCondition || fields.antenna_condition || 'สภาพเสาและสายอากาศอยู่ในเกณฑ์ปกติ';
@@ -452,6 +455,17 @@ export function SurveyPreviewModal({
                       </span>
                     </td>
                     <td className={cn('py-2 px-2.5', labelClass)}>{isBatteryNormal ? 'แบตเตอรี่สำรองพร้อมจ่ายไฟ' : 'แบตเตอรี่เสื่อม/เก็บไฟไม่อยู่'}</td>
+                  </tr>
+                  <tr>
+                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>6. ระบบกราวด์ ( Ground System )</td>
+                    <td className="py-2 px-2.5 text-center">
+                      <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
+                        isGroundNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
+                      }`}>
+                        {groundStatus}
+                      </span>
+                    </td>
+                    <td className={cn('py-2 px-2.5', labelClass)}>{isGroundNormal ? 'ระบบกราวด์สมบูรณ์ ต่อลงดินเรียบร้อย' : 'ระบบกราวด์มีปัญหา/หลุดหลวม'}</td>
                   </tr>
                   <tr>
                     <td className={cn('py-2 px-2.5 font-medium', labelClass)}>ปัญหาเพิ่มเติมที่ผู้ใช้งานแจ้ง</td>

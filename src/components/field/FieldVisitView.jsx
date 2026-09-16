@@ -48,7 +48,8 @@ export function FieldVisitView({ onNavigate }) {
     receiveStatus: 'ปกติ',
     transmitStatus: 'ปกติ',
     powerStatus: 'ปกติ',
-    batteryStatus: 'ปกติ'
+    batteryStatus: 'ปกติ',
+    groundStatus: 'ปกติ'
   });
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [statusMessage, setStatusMessage] = useState({ text: '', type: '' });
@@ -190,7 +191,8 @@ export function FieldVisitView({ onNavigate }) {
         receiveStatus: 'ปกติ',
         transmitStatus: 'ปกติ',
         powerStatus: 'ปกติ',
-        batteryStatus: 'ปกติ'
+        batteryStatus: 'ปกติ',
+        groundStatus: 'ปกติ'
       });
       setSelectedPhotos([]);
     } catch (err) {
@@ -505,7 +507,8 @@ export function FieldVisitView({ onNavigate }) {
                     ['radioStatus', 'สามารถใช้งานเครื่องวิทยุได้ตามปกติ', ['ปกติ', 'ไม่ปกติ']],
                     ['receiveStatus', 'การรับ ส่งสัญญาณ', ['ปกติ', 'ไม่ปกติ']],
                     ['powerStatus', 'การทำงานของระบบไฟฟ้า', ['ปกติ', 'ไม่ปกติ']],
-                    ['batteryStatus', 'การทำงานของแบตเตอรี่สำรอง', ['ปกติ', 'ไม่ปกติ']]
+                    ['batteryStatus', 'การทำงานของแบตเตอรี่สำรอง', ['ปกติ', 'ไม่ปกติ']],
+                    ['groundStatus', 'ระบบกราวด์ ( Ground System )', ['ปกติ', 'ไม่ปกติ']]
                   ].map(([key, label, options]) => (
                     <tr
                       key={key}

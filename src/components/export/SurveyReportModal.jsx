@@ -128,6 +128,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
   const batteryStatus = fields.batteryStatus || fields.battery_status || 'ปกติ';
   const isBatteryNormal = batteryStatus === 'ปกติ' || batteryStatus === 'ไม่มี' || batteryStatus === 'ไม่มีปัญหา';
 
+  const groundStatus = fields.groundStatus || fields.ground_status || 'ปกติ';
+  const isGroundNormal = groundStatus === 'ปกติ' || groundStatus === 'ไม่มี' || groundStatus === 'ไม่มีปัญหา' || groundStatus === 'ไม่พบ';
+
   const userProblem = fields.userProblem || fields.user_problem || 'ไม่พบปัญหาเพิ่มเติม';
 
   // Environment & Site Conditions
@@ -514,6 +517,24 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
                           {isBatteryNormal ? 'แบตเตอรี่สำรองพร้อมจ่ายไฟ' : 'แบตเตอรี่เสื่อม/เก็บไฟไม่อยู่'}
+                        </td>
+                      </tr>
+
+                      {/* Item 6 */}
+                      <tr>
+                        <td className="border border-black py-1 px-1.5 text-center">6</td>
+                        <td className="border border-black py-1 px-3">
+                          ระบบกราวด์ ( Ground System )
+                        </td>
+                        <td className="border border-black py-1 px-2 text-center font-semibold">
+                          {isGroundNormal ? (
+                            <span className="text-emerald-800 font-bold">ปกติ</span>
+                          ) : (
+                            <span className="text-rose-700 font-bold">ไม่ปกติ ({groundStatus})</span>
+                          )}
+                        </td>
+                        <td className="border border-black py-1 px-3 text-neutral-800">
+                          {isGroundNormal ? 'ระบบกราวด์สมบูรณ์ ต่อลงดินเรียบร้อย' : 'ระบบกราวด์มีปัญหา/หลุดหลวม'}
                         </td>
                       </tr>
 
