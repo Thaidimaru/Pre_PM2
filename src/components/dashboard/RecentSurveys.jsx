@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { Clock, ArrowRight, CheckCircle2, XCircle, AlertCircle, FileText, Printer, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import {
+  Clock,
+  ArrowRight,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  FileText,
+  Printer,
+  ExternalLink,
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { SurveyReportModal } from '@/components/export/SurveyReportModal';
 import { SurveyPreviewModal } from '@/components/dashboard/SurveyPreviewModal';
@@ -10,6 +22,17 @@ export function RecentSurveys({ recent = [], onNavigate }) {
   const { isDark } = useTheme();
   const [selectedReport, setSelectedReport] = useState(null);
   const [selectedPreview, setSelectedPreview] = useState(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalItems = recent.length;
+  const effectivePageSize = pageSize === 'all' ? (totalItems || 1) : Number(pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalItems / effectivePageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const startIndex = (safeCurrentPage - 1) * effectivePageSize;
+  const endIndex = pageSize === 'all' ? totalItems : Math.min(startIndex + effectivePageSize, totalItems);
+  const displayedItems = pageSize === 'all' ? recent : recent.slice(startIndex, endIndex);
 
   const getBadge = (permit) => {
     if (permit === 'อนุญาต') {
@@ -98,22 +121,78 @@ export function RecentSurveys({ recent = [], onNavigate }) {
           )}
         </div>
 
-        {/* Table Container */}
-        <div className="overflow-x-auto pt-4">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className={cn('border-b text-xs font-semibold', isDark ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-500')}>
-                <th className="pb-2.5 pr-3">รหัสรายการ</th>
-                <th className="pb-2.5 px-3">สถานี</th>
-                <th className="pb-2.5 px-3">จังหวัด</th>
-                <th className="pb-2.5 px-3 text-center">ผล</th>
-                <th className="pb-2.5 px-3 text-right">เวลาบันทึก</th>
-                <th className="pb-2.5 pl-3 text-center">Export</th>
+        {/* Toolbar: Count info & Page Size Selector */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3.5 pb-1 text-xs">
+          <div className={cn('font-medium', isDark ? 'text-slate-400' : 'text-slate-600')}>
+            แสดง{' '}
+            <span className={cn('font-bold font-mono', isDark ? 'text-cyan-300' : 'text-sky-600')}>
+              {totalItems > 0 ? startIndex + 1 : 0} - {endIndex}
+            </span>{' '}
+            จากทั้งหมด{' '}
+            <span className={cn('font-bold font-mono', isDark ? 'text-cyan-300' : 'text-sky-600')}>
+              {totalItems}
+            </span>{' '}
+            สถานี
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="station-page-size"
+              className={cn('font-medium cursor-pointer', isDark ? 'text-slate-400' : 'text-slate-500')}
+            >
+              จำนวนต่อหน้า:
+            </label>
+            <select
+              id="station-page-size"
+              value={pageSize}
+              onChange={(e) => {
+                const val = e.target.value === 'all' ? 'all' : Number(e.target.value);
+                setPageSize(val);
+                setCurrentPage(1);
+              }}
+              className={cn(
+                'rounded-lg border px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors focus:outline-none focus:ring-1 focus:ring-cyan-500',
+                isDark
+                  ? 'border-slate-700 bg-slate-900/90 text-slate-200 hover:border-slate-600'
+                  : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 shadow-2xs'
+              )}
+            >
+              <option value={5}>5 สถานี/หน้า</option>
+              <option value={10}>10 สถานี/หน้า</option>
+              <option value={20}>20 สถานี/หน้า</option>
+              <option value={50}>50 สถานี/หน้า</option>
+              <option value={100}>100 สถานี/หน้า</option>
+              <option value="all">ทั้งหมด</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Table Container with scrollbar */}
+        <div
+          className={cn(
+            'overflow-x-auto overflow-y-auto max-h-[420px] rounded-xl border mt-2 custom-scrollbar transition-colors',
+            isDark ? 'border-slate-800/80 bg-slate-950/20' : 'border-slate-200 bg-white'
+          )}
+        >
+          <table className="w-full text-left text-sm relative border-collapse">
+            <thead
+              className={cn(
+                'sticky top-0 z-10 backdrop-blur-md shadow-xs',
+                isDark ? 'bg-slate-900/95 text-slate-400' : 'bg-slate-50/95 text-slate-500'
+              )}
+            >
+              <tr className={cn('border-b text-xs font-semibold', isDark ? 'border-slate-800' : 'border-slate-200')}>
+                <th className="py-2.5 pr-3 pl-3">รหัสรายการ</th>
+                <th className="py-2.5 px-3">สถานี</th>
+                <th className="py-2.5 px-3">จังหวัด</th>
+                <th className="py-2.5 px-3 text-center">ผล</th>
+                <th className="py-2.5 px-3 text-right">เวลาบันทึก</th>
+                <th className="py-2.5 pl-3 pr-3 text-center">Export</th>
               </tr>
             </thead>
             <tbody className={cn('divide-y', isDark ? 'divide-slate-800/50' : 'divide-slate-200')}>
-              {recent.length > 0 ? (
-                recent.map((item) => (
+              {displayedItems.length > 0 ? (
+                displayedItems.map((item) => (
                   <tr
                     key={item.recordId}
                     className={cn(
@@ -122,7 +201,7 @@ export function RecentSurveys({ recent = [], onNavigate }) {
                     )}
                   >
                     {/* Clickable Record ID */}
-                    <td className="py-3 pr-3 font-mono text-xs">
+                    <td className="py-3 pr-3 pl-3 font-mono text-xs">
                       <button
                         type="button"
                         onClick={() => setSelectedPreview(item)}
@@ -185,7 +264,7 @@ export function RecentSurveys({ recent = [], onNavigate }) {
                       })}
                     </td>
 
-                    <td className="py-3 pl-3 text-center">
+                    <td className="py-3 pl-3 pr-3 text-center">
                       <button
                         type="button"
                         onClick={() => setSelectedReport(item)}
@@ -213,6 +292,92 @@ export function RecentSurveys({ recent = [], onNavigate }) {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {totalPages > 1 && (
+          <div
+            className={cn(
+              'flex items-center justify-between pt-3 mt-2 border-t text-xs',
+              isDark ? 'border-slate-800/60 text-slate-400' : 'border-slate-200 text-slate-600'
+            )}
+          >
+            <div className="font-medium">
+              หน้า <span className="font-bold font-mono">{safeCurrentPage}</span> จาก{' '}
+              <span className="font-bold font-mono">{totalPages}</span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safeCurrentPage <= 1}
+                className={cn(
+                  'flex items-center gap-1 px-3 py-1.5 rounded-lg border font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-xs',
+                  isDark
+                    ? 'border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-700 hover:text-white'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-2xs'
+                )}
+                title="หน้าก่อนหน้า"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                <span>ก่อนหน้า</span>
+              </button>
+
+              <div className="hidden sm:flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, idx) => idx + 1)
+                  .filter((pageNum) => {
+                    if (totalPages <= 5) return true;
+                    return (
+                      pageNum === 1 ||
+                      pageNum === totalPages ||
+                      Math.abs(pageNum - safeCurrentPage) <= 1
+                    );
+                  })
+                  .map((pageNum, idx, arr) => {
+                    const prevNum = arr[idx - 1];
+                    const showEllipsis = prevNum && pageNum - prevNum > 1;
+                    return (
+                      <React.Fragment key={pageNum}>
+                        {showEllipsis && <span className="px-1 text-slate-500">...</span>}
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={cn(
+                            'h-7 min-w-[1.75rem] px-1.5 rounded-md text-xs font-mono font-semibold transition-colors cursor-pointer',
+                            safeCurrentPage === pageNum
+                              ? isDark
+                                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                                : 'bg-sky-100 text-sky-700 border border-sky-300'
+                              : isDark
+                                ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          )}
+                        >
+                          {pageNum}
+                        </button>
+                      </React.Fragment>
+                    );
+                  })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safeCurrentPage >= totalPages}
+                className={cn(
+                  'flex items-center gap-1 px-3 py-1.5 rounded-lg border font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-xs',
+                  isDark
+                    ? 'border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-700 hover:text-white'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-2xs'
+                )}
+                title="หน้าถัดไป"
+              >
+                <span>ถัดไป</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
       </GlassCard>
 
       {/* Survey Preview Modal (Detail & Photos with Download) */}
