@@ -45,7 +45,7 @@ export function ProvinceChart({ provinces = [] }) {
               <span className="col-span-5">สัดส่วน</span>
               <span className="col-span-2 text-right">รวม</span>
             </div>
-            <div className={cn('max-h-[300px] overflow-y-auto divide-y', isDark ? 'divide-slate-800/40' : 'divide-slate-100')}>
+            <div className={cn('divide-y', isDark ? 'divide-slate-800/40' : 'divide-slate-100')}>
               {displayProvinces.length > 0 ? (
                 displayProvinces.map((prov, i) => {
                   const pct = Math.max(10, Math.min(100, (prov.count / maxProvinceCount) * 100));
