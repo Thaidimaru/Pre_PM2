@@ -121,6 +121,7 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
 
   const transmitStatus = fields.transmitStatus || fields.transmit_status || 'ปกติ';
   const isTransmitNormal = transmitStatus === 'ปกติ' || transmitStatus === 'ไม่พบ' || transmitStatus === 'ไม่พบปัญหา';
+  const isSignalNormal = isReceiveNormal && isTransmitNormal;
 
   const powerStatus = fields.powerStatus || fields.power_status || 'ปกติ';
   const isPowerNormal = powerStatus === 'ปกติ' || powerStatus === 'ไม่มี' || powerStatus === 'ไม่มีปัญหา';
@@ -449,41 +450,23 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                       <tr>
                         <td className="border border-black py-1 px-1.5 text-center">2</td>
                         <td className="border border-black py-1 px-3">
-                          ภาครับสัญญาณ (Receiver Status)
+                          ภาครับ - ส่งสัญญาณ (Receiver & Transmitter Status)
                         </td>
                         <td className="border border-black py-1 px-2 text-center font-semibold">
-                          {isReceiveNormal ? (
+                          {isSignalNormal ? (
                             <span className="text-emerald-800 font-bold">ปกติ</span>
                           ) : (
                             <span className="text-rose-700 font-bold">ไม่ปกติ</span>
                           )}
                         </td>
                         <td className="border border-black py-1 px-3 text-neutral-800">
-                          {isReceiveNormal ? 'รับสัญญาณได้ชัดเจน' : 'สัญญาณขาดหาย/มีสัญญาณรบกวน'}
+                          {isSignalNormal ? 'รับและส่งสัญญาณได้ตามปกติ ชัดเจน' : 'พบข้อขัดข้องในการรับหรือส่งสัญญาณ'}
                         </td>
                       </tr>
 
                       {/* Item 3 */}
                       <tr>
                         <td className="border border-black py-1 px-1.5 text-center">3</td>
-                        <td className="border border-black py-1 px-3">
-                          ภาคส่งสัญญาณ (Transmitter Status)
-                        </td>
-                        <td className="border border-black py-1 px-2 text-center font-semibold">
-                          {isTransmitNormal ? (
-                            <span className="text-emerald-800 font-bold">ปกติ</span>
-                          ) : (
-                            <span className="text-rose-700 font-bold">ไม่ปกติ</span>
-                          )}
-                        </td>
-                        <td className="border border-black py-1 px-3 text-neutral-800">
-                          {isTransmitNormal ? 'ส่งสัญญาณออกอากาศได้ตามปกติ' : 'กำลังส่งตก/ส่งสัญญาณไม่ได้'}
-                        </td>
-                      </tr>
-
-                      {/* Item 4 */}
-                      <tr>
-                        <td className="border border-black py-1 px-1.5 text-center">4</td>
                         <td className="border border-black py-1 px-3">
                           ระบบไฟฟ้าหลักของสถานี (Power Supply)
                         </td>
@@ -499,9 +482,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                       </tr>
 
-                      {/* Item 5 */}
+                      {/* Item 4 */}
                       <tr>
-                        <td className="border border-black py-1 px-1.5 text-center">5</td>
+                        <td className="border border-black py-1 px-1.5 text-center">4</td>
                         <td className="border border-black py-1 px-3">
                           แบตเตอรี่สำรอง (Backup Battery)
                         </td>
@@ -517,9 +500,9 @@ export function SurveyReportModal({ isOpen, onClose, surveyData = {} }) {
                         </td>
                       </tr>
 
-                      {/* Item 6 */}
+                      {/* Item 5 */}
                       <tr>
-                        <td className="border border-black py-1 px-1.5 text-center">6</td>
+                        <td className="border border-black py-1 px-1.5 text-center">5</td>
                         <td className="border border-black py-1 px-3">
                           ระบบกราวด์ ( Ground System )
                         </td>

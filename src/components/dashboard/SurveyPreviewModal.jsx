@@ -112,6 +112,7 @@ export function SurveyPreviewModal({
 
   const transmitStatus = fields.transmitStatus || fields.transmit_status || 'ปกติ';
   const isTransmitNormal = transmitStatus === 'ปกติ' || transmitStatus === 'ไม่พบ' || transmitStatus === 'ไม่พบปัญหา';
+  const isSignalNormal = isReceiveNormal && isTransmitNormal;
 
   const powerStatus = fields.powerStatus || fields.power_status || 'ปกติ';
   const isPowerNormal = powerStatus === 'ปกติ' || powerStatus === 'ไม่มี' || powerStatus === 'ไม่มีปัญหา';
@@ -413,29 +414,18 @@ export function SurveyPreviewModal({
                     <td className={cn('py-2 px-2.5', labelClass)}>{isRadioNormal ? 'เครื่องวิทยุทำงานปกติ' : 'พบข้อขัดข้องในการใช้งาน'}</td>
                   </tr>
                   <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>2. ภาครับสัญญาณ (Receiver Status)</td>
+                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>2. ภาครับ - ส่งสัญญาณ (Receiver & Transmitter Status)</td>
                     <td className="py-2 px-2.5 text-center">
                       <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
-                        isReceiveNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
+                        isSignalNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
                       }`}>
-                        {isReceiveNormal ? 'ปกติ' : 'ไม่ปกติ'}
+                        {isSignalNormal ? 'ปกติ' : 'ไม่ปกติ'}
                       </span>
                     </td>
-                    <td className={cn('py-2 px-2.5', labelClass)}>{isReceiveNormal ? 'รับสัญญาณได้ชัดเจน' : 'สัญญาณขาดหาย/มีสัญญาณรบกวน'}</td>
+                    <td className={cn('py-2 px-2.5', labelClass)}>{isSignalNormal ? 'รับและส่งสัญญาณได้ตามปกติ ชัดเจน' : 'พบข้อขัดข้องในการรับหรือส่งสัญญาณ'}</td>
                   </tr>
                   <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>3. ภาคส่งสัญญาณ (Transmitter Status)</td>
-                    <td className="py-2 px-2.5 text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
-                        isTransmitNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
-                      }`}>
-                        {isTransmitNormal ? 'ปกติ' : 'ไม่ปกติ'}
-                      </span>
-                    </td>
-                    <td className={cn('py-2 px-2.5', labelClass)}>{isTransmitNormal ? 'ส่งสัญญาณออกอากาศได้ตามปกติ' : 'กำลังส่งตก/ส่งสัญญาณไม่ได้'}</td>
-                  </tr>
-                  <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>4. ระบบไฟฟ้าหลักของสถานี (Power Supply)</td>
+                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>3. ระบบไฟฟ้าหลักของสถานี (Power Supply)</td>
                     <td className="py-2 px-2.5 text-center">
                       <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
                         isPowerNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
@@ -446,7 +436,7 @@ export function SurveyPreviewModal({
                     <td className={cn('py-2 px-2.5', labelClass)}>{isPowerNormal ? 'ระบบไฟฟ้าจ่ายไฟสม่ำเสมอ' : 'ระบบไฟฟ้าขัดข้อง/ไฟตกบ่อย'}</td>
                   </tr>
                   <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>5. แบตเตอรี่สำรอง (Backup Battery)</td>
+                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>4. แบตเตอรี่สำรอง (Backup Battery)</td>
                     <td className="py-2 px-2.5 text-center">
                       <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
                         isBatteryNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
@@ -457,7 +447,7 @@ export function SurveyPreviewModal({
                     <td className={cn('py-2 px-2.5', labelClass)}>{isBatteryNormal ? 'แบตเตอรี่สำรองพร้อมจ่ายไฟ' : 'แบตเตอรี่เสื่อม/เก็บไฟไม่อยู่'}</td>
                   </tr>
                   <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>6. ระบบกราวด์ ( Ground System )</td>
+                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>5. ระบบกราวด์ ( Ground System )</td>
                     <td className="py-2 px-2.5 text-center">
                       <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
                         isGroundNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
