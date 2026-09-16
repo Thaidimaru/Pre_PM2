@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils';
 
 export function ProvinceChart({ provinces = [] }) {
   const { isDark } = useTheme();
-  const maxProvinceCount = Math.max(...provinces.map((p) => p.count), 1);
+  const displayProvinces = provinces.slice(0, 10);
+  const maxProvinceCount = Math.max(...displayProvinces.map((p) => p.count), 1);
 
   return (
     <GlassCard className="flex flex-col h-full" hoverEffect={false}>
@@ -21,7 +22,7 @@ export function ProvinceChart({ provinces = [] }) {
           <MapPin className="h-4 w-4" />
         </div>
         <h2 className={cn('text-lg font-bold tracking-normal leading-normal', isDark ? 'text-white' : 'text-slate-900')}>
-          สรุปผลการสำรวจรายจังหวัด
+          สรุปผลการสำรวจรายจังหวัด (10 อันดับแรก)
         </h2>
       </div>
 
@@ -45,8 +46,8 @@ export function ProvinceChart({ provinces = [] }) {
               <span className="col-span-2 text-right">รวม</span>
             </div>
             <div className={cn('max-h-[300px] overflow-y-auto divide-y', isDark ? 'divide-slate-800/40' : 'divide-slate-100')}>
-              {provinces.length > 0 ? (
-                provinces.map((prov, i) => {
+              {displayProvinces.length > 0 ? (
+                displayProvinces.map((prov, i) => {
                   const pct = Math.max(10, Math.min(100, (prov.count / maxProvinceCount) * 100));
                   return (
                     <div
