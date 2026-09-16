@@ -80,7 +80,13 @@ export function FieldVisitView({ onNavigate }) {
   }, []);
 
   const updateField = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'receiveStatus') {
+        next.transmitStatus = value;
+      }
+      return next;
+    });
   };
 
   // Auto-fill installation and contact details when station is selected
@@ -500,8 +506,7 @@ export function FieldVisitView({ onNavigate }) {
                 <tbody className={cn('divide-y', isDark ? 'divide-slate-800/50' : 'divide-slate-200')}>
                   {[
                     ['radioStatus', 'สภาพการทำงานของเครื่องวิทยุคมนาคม', ['ปกติ', 'ไม่ปกติ']],
-                    ['receiveStatus', 'ภาครับสัญญาณ (Receiver Status)', ['ปกติ', 'ไม่ปกติ']],
-                    ['transmitStatus', 'ภาคส่งสัญญาณ (Transmitter Status)', ['ปกติ', 'ไม่ปกติ']],
+                    ['receiveStatus', 'ภาครับ - ส่งสัญญาณ (Receiver & Transmitter Status)', ['ปกติ', 'ไม่ปกติ']],
                     ['powerStatus', 'ระบบไฟฟ้าหลักของสถานี (Power Supply)', ['ปกติ', 'ไม่ปกติ']],
                     ['batteryStatus', 'แบตเตอรี่สำรอง (Backup Battery)', ['ปกติ', 'ไม่ปกติ']],
                     ['groundStatus', 'ระบบกราวด์ ( Ground System )', ['ปกติ', 'ไม่ปกติ']]
