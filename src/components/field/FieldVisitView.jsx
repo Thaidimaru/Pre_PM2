@@ -80,13 +80,7 @@ export function FieldVisitView({ onNavigate }) {
   }, []);
 
   const updateField = (field, value) => {
-    setFormData((prev) => {
-      const next = { ...prev, [field]: value };
-      if (field === 'receiveStatus') {
-        next.transmitStatus = value;
-      }
-      return next;
-    });
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   // Auto-fill installation and contact details when station is selected
@@ -472,14 +466,14 @@ export function FieldVisitView({ onNavigate }) {
           </div>
         </GlassCard>
 
-        {/* 04 สอบถามการใช้งาน (Radix UI Select) */}
+        {/* 04 บันทึกผลการตรวจสอบและประเมินสภาพระบบอุปกรณ์ (Equipment & Operational Assessment) */}
         <GlassCard hoverEffect={false} className="space-y-4">
           <div className={cn('flex items-center gap-2.5 pb-3 border-b', sectionHeaderBorder)}>
             <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg', sectionIconBox)}>
               <Zap className="h-4 w-4" />
             </div>
             <h2 className={sectionTitle}>
-              04 · สอบถามการใช้งาน
+              04 · บันทึกผลการตรวจสอบและประเมินสภาพระบบอุปกรณ์ (Equipment & Operational Assessment)
             </h2>
           </div>
 
@@ -498,18 +492,20 @@ export function FieldVisitView({ onNavigate }) {
                       isDark ? 'border-slate-800 bg-slate-900/60 text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-600'
                     )}
                   >
-                    <th className="px-4 py-3">หัวข้อการประเมิน</th>
-                    <th className="px-4 py-3 w-48">ผลการตรวจสอบ</th>
+                    <th className="px-4 py-3 w-16 text-center">ลำดับ</th>
+                    <th className="px-4 py-3">รายการตรวจประเมิน</th>
+                    <th className="px-4 py-3 w-48 text-center">ผลการตรวจ</th>
                   </tr>
                 </thead>
                 <tbody className={cn('divide-y', isDark ? 'divide-slate-800/50' : 'divide-slate-200')}>
                   {[
-                    ['radioStatus', 'สามารถใช้งานเครื่องวิทยุได้ตามปกติ', ['ปกติ', 'ไม่ปกติ']],
-                    ['receiveStatus', 'การรับ ส่งสัญญาณ', ['ปกติ', 'ไม่ปกติ']],
-                    ['powerStatus', 'การทำงานของระบบไฟฟ้า', ['ปกติ', 'ไม่ปกติ']],
-                    ['batteryStatus', 'การทำงานของแบตเตอรี่สำรอง', ['ปกติ', 'ไม่ปกติ']],
+                    ['radioStatus', 'สภาพการทำงานของเครื่องวิทยุคมนาคม', ['ปกติ', 'ไม่ปกติ']],
+                    ['receiveStatus', 'ภาครับสัญญาณ (Receiver Status)', ['ปกติ', 'ไม่ปกติ']],
+                    ['transmitStatus', 'ภาคส่งสัญญาณ (Transmitter Status)', ['ปกติ', 'ไม่ปกติ']],
+                    ['powerStatus', 'ระบบไฟฟ้าหลักของสถานี (Power Supply)', ['ปกติ', 'ไม่ปกติ']],
+                    ['batteryStatus', 'แบตเตอรี่สำรอง (Backup Battery)', ['ปกติ', 'ไม่ปกติ']],
                     ['groundStatus', 'ระบบกราวด์ ( Ground System )', ['ปกติ', 'ไม่ปกติ']]
-                  ].map(([key, label, options]) => (
+                  ].map(([key, label, options], idx) => (
                     <tr
                       key={key}
                       className={cn(
@@ -517,6 +513,9 @@ export function FieldVisitView({ onNavigate }) {
                         isDark ? 'hover:bg-slate-800/30' : 'hover:bg-sky-50/50'
                       )}
                     >
+                      <td className={cn('px-4 py-3 text-center font-mono text-xs font-semibold', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                        {idx + 1}
+                      </td>
                       <td className={cn('px-4 py-3 font-medium leading-normal', isDark ? 'text-slate-200' : 'text-slate-800')}>
                         {label}
                       </td>

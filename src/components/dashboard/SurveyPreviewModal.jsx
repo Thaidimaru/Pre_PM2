@@ -389,7 +389,7 @@ export function SurveyPreviewModal({
           <div className={sectionCardClass}>
             <h4 className={sectionTitleClass}>
               <ShieldCheck className={cn('h-4 w-4', sectionIconClass)} />
-              <span>3. ผลการตรวจสอบและประเมินสภาพระบบอุปกรณ์ (Equipment Assessment)</span>
+              <span>3. บันทึกผลการตรวจสอบและประเมินสภาพระบบอุปกรณ์ (Equipment & Operational Assessment)</span>
             </h4>
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
@@ -435,7 +435,7 @@ export function SurveyPreviewModal({
                     <td className={cn('py-2 px-2.5', labelClass)}>{isTransmitNormal ? 'ส่งสัญญาณออกอากาศได้ตามปกติ' : 'กำลังส่งตก/ส่งสัญญาณไม่ได้'}</td>
                   </tr>
                   <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>4. ระบบไฟฟ้าหลัก (Power Supply)</td>
+                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>4. ระบบไฟฟ้าหลักของสถานี (Power Supply)</td>
                     <td className="py-2 px-2.5 text-center">
                       <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
                         isPowerNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
