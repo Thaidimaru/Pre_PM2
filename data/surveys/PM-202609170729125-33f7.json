@@ -1,0 +1,27 @@
+{
+  "recordId": "PM-202609170729125-33f7",
+  "savedAt": "2026-09-17T07:29:12.509Z",
+  "station": "หมู่ 2 ป่าขลู",
+  "province": "นครศรีธรรมราช",
+  "permit": "อนุญาต",
+  "fields": {
+    "permit": "อนุญาต",
+    "radioStatus": "ปกติ",
+    "receiveStatus": "ปกติ",
+    "transmitStatus": "ปกติ",
+    "powerStatus": "ปกติ",
+    "batteryStatus": "ปกติ",
+    "groundStatus": "ปกติ",
+    "station": "หมู่ 2 ป่าขลู",
+    "province": "นครศรีธรรมราช",
+    "district": "ปากพนัง",
+    "subdistrict": "ขนาบนาก",
+    "installationPlace": "ที่ทำการบ้านกำนัน",
+    "equipmentPlace": "ที่ทำการบ้านกำนัน",
+    "contactName": "นายวรรณไชย แพรกปาน",
+    "contactPosition": "กำนัน",
+    "contactVillage": "หมู่ 2 ป่าขลู",
+    "contactPhone": "081-091-9500"
+  },
+  "photos": []
+}
