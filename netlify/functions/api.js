@@ -236,9 +236,23 @@ function loadLocalSurveys() {
   return localSurveys;
 }
 
+let memoryStationsCache = null;
+let memoryStationsMtime = 0;
+
 async function getStations() {
+  if (fs.existsSync(DATABASE_XLSX)) {
+    try {
+      const stat = fs.statSync(DATABASE_XLSX);
+      if (memoryStationsCache && memoryStationsMtime === stat.mtimeMs) {
+        return memoryStationsCache;
+      }
+    } catch {}
+  } else if (memoryStationsCache) {
+    return memoryStationsCache;
+  }
+
   const cached = await readJson(STATIONS_KEY, null);
-  if (Array.isArray(cached) && cached.length) return cached;
+  if (!fs.existsSync(DATABASE_XLSX) && Array.isArray(cached) && cached.length) return cached;
 
   const stations = [];
   const existingNames = new Set();
@@ -249,22 +263,54 @@ async function getStations() {
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
 
-      for (const row of rows.slice(2)) {
-        if (!row[2]) continue;
-        const name = String(row[2]).trim();
-        if (!name || existingNames.has(name)) continue;
-        existingNames.add(name);
-        stations.push({
-          id: stations.length + 1,
-          village: name,
-          subdistrict: String(row[3] || "").trim(),
-          district: String(row[4] || "").trim(),
-          province: String(row[5] || "").trim(),
-          installation_place: String(row[9] || "").trim(),
-          equipment_place: String(row[10] || "").trim(),
-          contact_name: String(row[11] || "").trim(),
-          contact_position: String(row[12] || "").trim(),
-        });
+      // Dynamic header row and column mapping
+      let headerIdx = -1;
+      const colMap = {};
+      for (let i = 0; i < Math.min(5, rows.length); i++) {
+        const rowStr = (rows[i] || []).map((c) => String(c || "")).join(" ");
+        if (rowStr.includes("หมู่บ้าน") || rowStr.includes("สถานี")) {
+          headerIdx = i;
+          rows[i].forEach((col, idx) => {
+            const val = String(col || "").replace(/\s+/g, "");
+            if (val.includes("หมู่บ้าน") || val.includes("สถานี")) colMap.village = idx;
+            else if (val.includes("ตำบล")) colMap.subdistrict = idx;
+            else if (val.includes("อำเภอ")) colMap.district = idx;
+            else if (val.includes("จังหวัด")) colMap.province = idx;
+            else if (val.includes("พื้นที่ตั้งเสา") || val.includes("สถานที่ติดตั้ง")) colMap.installation_place = idx;
+            else if (val.includes("พื้นที่วางเครื่อง") || val.includes("สถานที่วางเครื่อง")) colMap.equipment_place = idx;
+            else if (val.includes("เจ้าหน้าที่") || val.includes("ชื่อ")) colMap.contact_name = idx;
+            else if (val.includes("ตำแหน่ง")) colMap.contact_position = idx;
+            else if (val.includes("โทร") || val.includes("เบอร์")) colMap.contact_phone = idx;
+            else if (val.includes("บ้านเลขที่")) colMap.house_no = idx;
+          });
+          break;
+        }
+      }
+
+      if (headerIdx !== -1 && colMap.village !== undefined) {
+        for (const row of rows.slice(headerIdx + 1)) {
+          if (!row[colMap.village]) continue;
+          const name = normalizeStationKey(String(row[colMap.village]).trim());
+          if (!name || existingNames.has(name)) continue;
+          if (name.includes("หมายเหตุ") || name.startsWith("ลำดับที่")) continue;
+          const torVal = row[0];
+          if (typeof torVal === "string" && torVal.includes("หมายเหตุ")) continue;
+
+          existingNames.add(name);
+          stations.push({
+            id: stations.length + 1,
+            village: name,
+            subdistrict: colMap.subdistrict !== undefined ? String(row[colMap.subdistrict] || "").trim() : "",
+            district: colMap.district !== undefined ? String(row[colMap.district] || "").trim() : "",
+            province: colMap.province !== undefined ? String(row[colMap.province] || "").trim() : "",
+            installation_place: colMap.installation_place !== undefined ? String(row[colMap.installation_place] || "").trim() : "",
+            equipment_place: colMap.equipment_place !== undefined ? String(row[colMap.equipment_place] || "").trim() : "",
+            contact_name: colMap.contact_name !== undefined ? String(row[colMap.contact_name] || "").trim() : "",
+            contact_position: colMap.contact_position !== undefined ? String(row[colMap.contact_position] || "").trim() : "",
+            contact_phone: colMap.contact_phone !== undefined ? String(row[colMap.contact_phone] || "").trim() : "",
+            house_no: colMap.house_no !== undefined ? String(row[colMap.house_no] || "").trim() : "",
+          });
+        }
       }
     } catch (e) {
       console.error("Error reading DATABASE.xlsx:", e);
@@ -301,7 +347,15 @@ async function getStations() {
     }
   }
 
-  if (stations.length) await writeJson(STATIONS_KEY, stations);
+  if (stations.length) {
+    await writeJson(STATIONS_KEY, stations);
+    memoryStationsCache = stations;
+    if (fs.existsSync(DATABASE_XLSX)) {
+      try {
+        memoryStationsMtime = fs.statSync(DATABASE_XLSX).mtimeMs;
+      } catch {}
+    }
+  }
   return stations;
 }
 
@@ -399,9 +453,44 @@ async function getAllSurveys() {
   return surveys.sort((a, b) => String(b.savedAt || "").localeCompare(String(a.savedAt || "")));
 }
 
+const STATION_ALIASES = {
+  "หมู่ 10 สำราญเหนือ (ศรีสุขสำราญ)": "หมู่ 10 บ้านสำราญเหนือ",
+  "หมู่ 8 วังหยี (เหมกน้อย)": "หมู่ 8 บ้านเหมกน้อย",
+  "หมู่ 8 ทุ่งเอื้อง (ลำขนุน)": "หมู่ 8 บ้านลำขนุน",
+  "หมู่ 10 หน้าโกฏิ (หัวดอน)": "หมู่ 10 หัวดอน",
+  "หมู่ 6 บางอุดม (บางมะขาม)": "หมู่ 6 บางมะขาม",
+  "หมู่ 9 บางคณฑี (น้ำทรัพย์)": "หมู่ 9 น้ำทรัพย์",
+  "หมู่ 7 บ้านใหม่วังเรือง (บ้านใหม่วังเรือน)": "หมู่ 7 บ้านใหม่วังเรือง",
+  "หมู่ 13 วังคำแพง (วังกำแพง)": "หมู่ 13 บ้านวังกำแพง",
+  "หมู่ 6 บ้านเกาะแก้วอนุสรณ์": "หมู่ 6 บ้านเกาะแก้ว",
+  "หมู่ 5 บ้านตากฟ้า": "หมู่ 5 ตากฟ้า",
+  "หมู่ 1 ลาดแคใต้": "หมู่ 1 บ้านลาดแค",
+  "หมู่ 14 หนองใหญ่ใต้": "หมู่ 14 บ้านหนองใหญ่โต",
+  "หมู่ 17 คลองโปร่ง": "หมู่ 17 บ้านคลองโป่ง",
+};
+
+const THAI_DIGITS = "๐๑๒๓๔๕๖๗๘๙";
+function normalizeStationKey(name) {
+  return String(name || "")
+    .trim()
+    .replace(/[๑๒๓๔๕๖๗๘๙๐]/g, (d) => THAI_DIGITS.indexOf(d))
+    .replace(/\s+/g, " ");
+}
+
 function findStation(stations, fields) {
-  const name = String(fields.station || fields.stationSelect || "").trim();
-  return name ? (stations.find((s) => String(s.village).trim() === name) || null) : null;
+  let name = String(fields.station || fields.stationSelect || "").trim();
+  if (!name) return null;
+  const targetName = STATION_ALIASES[name] || name;
+  const normTarget = normalizeStationKey(targetName);
+  const normRaw = normalizeStationKey(name);
+
+  return (
+    stations.find((s) => String(s.village).trim() === targetName) ||
+    stations.find((s) => normalizeStationKey(s.village) === normTarget) ||
+    stations.find((s) => String(s.village).trim() === name) ||
+    stations.find((s) => normalizeStationKey(s.village) === normRaw) ||
+    null
+  );
 }
 
 async function getDashboardData() {
@@ -433,6 +522,7 @@ async function getDashboardData() {
       equipmentPlace: station?.equipment_place || fields.equipmentPlace || "",
       contactName: station?.contact_name || fields.contactName || "",
       contactPosition: station?.contact_position || fields.contactPosition || "",
+      contactPhone: station?.contact_phone || fields.contactPhone || fields.contact_phone || "",
       ...fields,
     };
     if (!mergedFields.installationPlace && station?.installation_place) {
@@ -446,6 +536,9 @@ async function getDashboardData() {
     }
     if (!mergedFields.contactPosition && station?.contact_position) {
       mergedFields.contactPosition = station.contact_position;
+    }
+    if (!mergedFields.contactPhone && station?.contact_phone) {
+      mergedFields.contactPhone = station.contact_phone;
     }
     if (!mergedFields.subdistrict && station?.subdistrict) {
       mergedFields.subdistrict = station.subdistrict;

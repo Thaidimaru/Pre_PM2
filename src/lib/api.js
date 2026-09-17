@@ -177,12 +177,47 @@ export async function fetchDashboardData() {
   return merged;
 }
 
+export const THAI_DIGITS = '๐๑๒๓๔๕๖๗๘๙';
+
+export function normalizeStationKey(name) {
+  return String(name || '')
+    .trim()
+    .replace(/[๑๒๓๔๕๖๗๘๙๐]/g, (d) => THAI_DIGITS.indexOf(d))
+    .replace(/\s+/g, ' ');
+}
+
+export const STATION_ALIASES = {
+  'หมู่ 10 สำราญเหนือ (ศรีสุขสำราญ)': 'หมู่ 10 บ้านสำราญเหนือ',
+  'หมู่ 8 วังหยี (เหมกน้อย)': 'หมู่ 8 บ้านเหมกน้อย',
+  'หมู่ 8 ทุ่งเอื้อง (ลำขนุน)': 'หมู่ 8 บ้านลำขนุน',
+  'หมู่ 10 หน้าโกฏิ (หัวดอน)': 'หมู่ 10 หัวดอน',
+  'หมู่ 6 บางอุดม (บางมะขาม)': 'หมู่ 6 บางมะขาม',
+  'หมู่ 9 บางคณฑี (น้ำทรัพย์)': 'หมู่ 9 น้ำทรัพย์',
+  'หมู่ 7 บ้านใหม่วังเรือง (บ้านใหม่วังเรือน)': 'หมู่ 7 บ้านใหม่วังเรือง',
+  'หมู่ 13 วังคำแพง (วังกำแพง)': 'หมู่ 13 บ้านวังกำแพง',
+  'หมู่ 6 บ้านเกาะแก้วอนุสรณ์': 'หมู่ 6 บ้านเกาะแก้ว',
+  'หมู่ 5 บ้านตากฟ้า': 'หมู่ 5 ตากฟ้า',
+  'หมู่ 1 ลาดแคใต้': 'หมู่ 1 บ้านลาดแค',
+  'หมู่ 14 หนองใหญ่ใต้': 'หมู่ 14 บ้านหนองใหญ่โต',
+  'หมู่ 17 คลองโปร่ง': 'หมู่ 17 บ้านคลองโป่ง',
+};
+
 let cachedStationMap = new Map();
 
 export function findStationByName(name) {
   if (!name) return null;
   const cleanName = String(name).trim();
-  return cachedStationMap.get(cleanName) || null;
+  const target = STATION_ALIASES[cleanName] || cleanName;
+  const normTarget = normalizeStationKey(target);
+  const normClean = normalizeStationKey(cleanName);
+
+  return (
+    cachedStationMap.get(target) ||
+    cachedStationMap.get(normTarget) ||
+    cachedStationMap.get(cleanName) ||
+    cachedStationMap.get(normClean) ||
+    null
+  );
 }
 
 export function enrichSurveyFields(rawSurvey = {}) {
@@ -200,6 +235,7 @@ export function enrichSurveyFields(rawSurvey = {}) {
     equipmentPlace: fields.equipmentPlace || fields.equipment_place || station?.equipment_place || station?.equipmentPlace || '',
     contactName: fields.contactName || fields.contact_name || station?.contact_name || station?.contactName || '',
     contactPosition: fields.contactPosition || fields.contact_position || station?.contact_position || station?.contactPosition || '',
+    contactPhone: fields.contactPhone || fields.contact_phone || station?.contact_phone || station?.contactPhone || '',
   };
 }
 
@@ -220,7 +256,21 @@ export async function fetchStations(token = '') {
   const stationList = Array.isArray(data.stations) ? data.stations : (Array.isArray(data) ? data : []);
   for (const s of stationList) {
     if (s && s.village) {
-      cachedStationMap.set(String(s.village).trim(), s);
+      const v = String(s.village).trim();
+      const normV = normalizeStationKey(v);
+      cachedStationMap.set(v, s);
+      if (!cachedStationMap.has(normV)) {
+        cachedStationMap.set(normV, s);
+      }
+    }
+  }
+  for (const [alias, target] of Object.entries(STATION_ALIASES)) {
+    const normTarget = normalizeStationKey(target);
+    const targetStation = cachedStationMap.get(target) || cachedStationMap.get(normTarget);
+    if (targetStation) {
+      if (!cachedStationMap.has(alias)) cachedStationMap.set(alias, targetStation);
+      const normAlias = normalizeStationKey(alias);
+      if (!cachedStationMap.has(normAlias)) cachedStationMap.set(normAlias, targetStation);
     }
   }
   return data;

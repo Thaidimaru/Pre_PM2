@@ -96,7 +96,7 @@ export function SurveyPreviewModal({
   const contactName = fields.contactName || fields.contact_name || stationLookup?.contact_name || fields.informantName || fields.informant_name || '-';
   const contactPosition = fields.contactPosition || fields.contact_position || stationLookup?.contact_position || 'เจ้าของพื้นที่ / ผู้ดูแลสถานี';
   const contactVillage = fields.contactVillage || fields.contact_village || (subdistrict ? `ต.${subdistrict.replace(/^ต\./, '')}` : '-');
-  const contactPhone = fields.contactPhone || fields.contact_phone || fields.phone || fields.tel || '-';
+  const contactPhone = fields.contactPhone || fields.contact_phone || fields.phone || fields.tel || stationLookup?.contact_phone || stationLookup?.contactPhone || '-';
 
   // Permission
   const permit = fields.permit || surveyData.permit || 'อนุญาต';

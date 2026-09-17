@@ -12,9 +12,11 @@ mimetypes.add_type('text/css', '.css')
 mimetypes.add_type('image/svg+xml', '.svg')
 import os
 from pathlib import Path
+import re
 import secrets
 import sqlite3
 import threading
+import urllib.parse
 from urllib.parse import unquote, quote
 import xml.etree.ElementTree as ET
 import zipfile
@@ -91,6 +93,32 @@ class AuthService:
 # ==============================================================================
 
 class DatabaseService:
+    # Station aliases mapping legacy survey station names to official new names
+    STATION_ALIASES = {
+        "หมู่ 10 สำราญเหนือ (ศรีสุขสำราญ)": "หมู่ 10 บ้านสำราญเหนือ",
+        "หมู่ 8 วังหยี (เหมกน้อย)": "หมู่ 8 บ้านเหมกน้อย",
+        "หมู่ 8 ทุ่งเอื้อง (ลำขนุน)": "หมู่ 8 บ้านลำขนุน",
+        "หมู่ 10 หน้าโกฏิ (หัวดอน)": "หมู่ 10 หัวดอน",
+        "หมู่ 6 บางอุดม (บางมะขาม)": "หมู่ 6 บางมะขาม",
+        "หมู่ 9 บางคณฑี (น้ำทรัพย์)": "หมู่ 9 น้ำทรัพย์",
+        "หมู่ 7 บ้านใหม่วังเรือง (บ้านใหม่วังเรือน)": "หมู่ 7 บ้านใหม่วังเรือง",
+        "หมู่ 13 วังคำแพง (วังกำแพง)": "หมู่ 13 บ้านวังกำแพง",
+        "หมู่ 6 บ้านเกาะแก้วอนุสรณ์": "หมู่ 6 บ้านเกาะแก้ว",
+        "หมู่ 5 บ้านตากฟ้า": "หมู่ 5 ตากฟ้า",
+        "หมู่ 1 ลาดแคใต้": "หมู่ 1 บ้านลาดแค",
+        "หมู่ 14 หนองใหญ่ใต้": "หมู่ 14 บ้านหนองใหญ่โต",
+        "หมู่ 17 คลองโปร่ง": "หมู่ 17 บ้านคลองโป่ง",
+    }
+
+    THAI_DIGITS = "๐๑๒๓๔๕๖๗๘๙"
+
+    @classmethod
+    def normalize_station_key(cls, name: str) -> str:
+        s = str(name or "").strip()
+        for idx, d in enumerate(cls.THAI_DIGITS):
+            s = s.replace(d, str(idx))
+        return " ".join(s.split())
+
     @staticmethod
     def connect() -> sqlite3.Connection:
         """Create a connection with sqlite3.Row factory."""
@@ -114,7 +142,9 @@ class DatabaseService:
                     installation_place TEXT,
                     equipment_place TEXT,
                     contact_name TEXT,
-                    contact_position TEXT
+                    contact_position TEXT,
+                    contact_phone TEXT,
+                    house_no TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS surveys (
@@ -133,6 +163,15 @@ class DatabaseService:
                 );
             """)
 
+            # Ensure contact_phone and house_no columns exist if upgrading from older schema
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(stations)")
+            existing_cols = {c[1] for c in cursor.fetchall()}
+            if "contact_phone" not in existing_cols:
+                conn.execute("ALTER TABLE stations ADD COLUMN contact_phone TEXT")
+            if "house_no" not in existing_cols:
+                conn.execute("ALTER TABLE stations ADD COLUMN house_no TEXT")
+
             # Synchronize stations from DATABASE.xlsx and AGWBS.xlsx
             cls._sync_stations(conn)
 
@@ -143,37 +182,71 @@ class DatabaseService:
     @classmethod
     def _sync_stations(cls, conn: sqlite3.Connection):
         """Parse and synchronize master station records from DATABASE.xlsx and AGWBS.xlsx."""
-        existing = {
-            str(row[0]).strip()
-            for row in conn.execute("SELECT village FROM stations").fetchall()
-            if row[0]
-        }
+        stations_to_insert = []
+        seen = set()
 
         # 1. Sync from DATABASE.xlsx
         if AppConfig.DATABASE_XLSX.exists():
             try:
                 rows = cls._read_xlsx_rows(AppConfig.DATABASE_XLSX)
-                for row in rows[2:]:
-                    if len(row) > 2 and row[2]:
-                        village = str(row[2]).strip()
-                        if village and village not in existing:
-                            values = (
+                # Find header row and column mapping dynamically
+                header_idx = -1
+                col_map = {}
+                for idx, row in enumerate(rows[:5]):
+                    row_str = " ".join(str(c) for c in row if c)
+                    if "หมู่บ้าน" in row_str or "สถานี" in row_str:
+                        header_idx = idx
+                        for c_idx, val in enumerate(row):
+                            val_s = re.sub(r"\s+", "", str(val).strip())
+                            if "หมู่บ้าน" in val_s or "สถานี" in val_s:
+                                col_map["village"] = c_idx
+                            elif "ตำบล" in val_s:
+                                col_map["subdistrict"] = c_idx
+                            elif "อำเภอ" in val_s:
+                                col_map["district"] = c_idx
+                            elif "จังหวัด" in val_s:
+                                col_map["province"] = c_idx
+                            elif "พื้นที่ตั้งเสา" in val_s or "สถานที่ติดตั้ง" in val_s:
+                                col_map["installation_place"] = c_idx
+                            elif "พื้นที่วางเครื่อง" in val_s or "สถานที่วางเครื่อง" in val_s:
+                                col_map["equipment_place"] = c_idx
+                            elif "เจ้าหน้าที่" in val_s or "ชื่อ" in val_s:
+                                col_map["contact_name"] = c_idx
+                            elif "ตำแหน่ง" in val_s:
+                                col_map["contact_position"] = c_idx
+                            elif "โทร" in val_s or "เบอร์" in val_s:
+                                col_map["contact_phone"] = c_idx
+                            elif "บ้านเลขที่" in val_s:
+                                col_map["house_no"] = c_idx
+                        break
+
+                if header_idx != -1 and "village" in col_map:
+                    v_col = col_map["village"]
+                    for row in rows[header_idx + 1:]:
+                        if len(row) > v_col and row[v_col]:
+                            village = cls.normalize_station_key(str(row[v_col]).strip())
+                            if not village or village in seen:
+                                continue
+                            # Skip note / footnote rows
+                            if "หมายเหตุ" in village or village.startswith("ลำดับที่"):
+                                continue
+                            tor_val = row[0] if len(row) > 0 else ""
+                            if isinstance(tor_val, str) and "หมายเหตุ" in tor_val:
+                                continue
+
+                            seen.add(village)
+                            stations_to_insert.append((
                                 village,
-                                str(row[3]).strip() if len(row) > 3 else "",
-                                str(row[4]).strip() if len(row) > 4 else "",
-                                str(row[5]).strip() if len(row) > 5 else "",
-                                str(row[9]).strip() if len(row) > 9 else "",
-                                str(row[10]).strip() if len(row) > 10 else "",
-                                str(row[11]).strip() if len(row) > 11 else "",
-                                str(row[12]).strip() if len(row) > 12 else ""
-                            )
-                            conn.execute("""
-                                INSERT INTO stations
-                                (village, subdistrict, district, province, installation_place,
-                                 equipment_place, contact_name, contact_position)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                            """, values)
-                            existing.add(village)
+                                str(row[col_map["subdistrict"]]).strip() if "subdistrict" in col_map and len(row) > col_map["subdistrict"] else "",
+                                str(row[col_map["district"]]).strip() if "district" in col_map and len(row) > col_map["district"] else "",
+                                str(row[col_map["province"]]).strip() if "province" in col_map and len(row) > col_map["province"] else "",
+                                str(row[col_map["installation_place"]]).strip() if "installation_place" in col_map and len(row) > col_map["installation_place"] else "",
+                                str(row[col_map["equipment_place"]]).strip() if "equipment_place" in col_map and len(row) > col_map["equipment_place"] else "",
+                                str(row[col_map["contact_name"]]).strip() if "contact_name" in col_map and len(row) > col_map["contact_name"] else "",
+                                str(row[col_map["contact_position"]]).strip() if "contact_position" in col_map and len(row) > col_map["contact_position"] else "",
+                                str(row[col_map["contact_phone"]]).strip() if "contact_phone" in col_map and len(row) > col_map["contact_phone"] else "",
+                                str(row[col_map["house_no"]]).strip() if "house_no" in col_map and len(row) > col_map["house_no"] else ""
+                            ))
             except Exception as e:
                 print(f"Warning: Failed to sync DATABASE.xlsx: {e}")
 
@@ -181,13 +254,13 @@ class DatabaseService:
         if AppConfig.AGWBS_XLSX.exists():
             try:
                 rows = cls._read_xlsx_rows(AppConfig.AGWBS_XLSX)
-                # Check header to confirm format
                 start_idx = 1 if (len(rows) > 0 and "สถานี" in str(rows[0][0])) else 0
                 for row in rows[start_idx:]:
                     if len(row) > 0 and row[0]:
                         village = str(row[0]).strip()
-                        if village and village not in existing and village != "สถานี":
-                            values = (
+                        if village and village not in seen and village != "สถานี":
+                            seen.add(village)
+                            stations_to_insert.append((
                                 village,
                                 str(row[1]).strip() if len(row) > 1 else "",
                                 str(row[2]).strip() if len(row) > 2 else "",
@@ -195,17 +268,21 @@ class DatabaseService:
                                 "",
                                 "",
                                 "",
+                                "",
+                                "",
                                 ""
-                            )
-                            conn.execute("""
-                                INSERT INTO stations
-                                (village, subdistrict, district, province, installation_place,
-                                 equipment_place, contact_name, contact_position)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                            """, values)
-                            existing.add(village)
+                            ))
             except Exception as e:
                 print(f"Warning: Failed to sync AGWBS.xlsx: {e}")
+
+        if stations_to_insert:
+            conn.execute("DELETE FROM stations")
+            conn.executemany("""
+                INSERT INTO stations
+                (village, subdistrict, district, province, installation_place,
+                 equipment_place, contact_name, contact_position, contact_phone, house_no)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, stations_to_insert)
 
     @classmethod
     def _seed_surveys_from_json(cls, conn: sqlite3.Connection):
@@ -284,8 +361,25 @@ class DatabaseService:
                 "url": f"/api/photos/{p['id']}"
             })
 
-        # Map stations by village name for accurate lookup
-        station_map = {s["village"].strip(): s for s in stations if s.get("village")}
+        # Map stations by village name for accurate lookup, including alias resolution and numeral normalization
+        station_map = {}
+        for s in stations:
+            if s.get("village"):
+                v = s["village"].strip()
+                station_map[v] = s
+                norm_v = cls.normalize_station_key(v)
+                if norm_v not in station_map:
+                    station_map[norm_v] = s
+
+        for alias, target in cls.STATION_ALIASES.items():
+            norm_target = cls.normalize_station_key(target)
+            target_obj = station_map.get(target) or station_map.get(norm_target)
+            if target_obj:
+                if alias not in station_map:
+                    station_map[alias] = target_obj
+                norm_alias = cls.normalize_station_key(alias)
+                if norm_alias not in station_map:
+                    station_map[norm_alias] = target_obj
 
         allowed = 0
         denied = 0
@@ -305,7 +399,8 @@ class DatabaseService:
                 denied += 1
 
             station_name = str(fields.get("station") or fields.get("stationSelect") or "").strip()
-            station_info = station_map.get(station_name, {})
+            norm_station_name = cls.normalize_station_key(station_name)
+            station_info = station_map.get(station_name) or station_map.get(norm_station_name) or {}
             province = station_info.get("province") or fields.get("province") or "ไม่ระบุจังหวัด"
             province_counts[province] = province_counts.get(province, 0) + 1
 
@@ -321,6 +416,7 @@ class DatabaseService:
                     "equipmentPlace": (station_info.get("equipment_place", "") if station_info else "") or fields.get("equipmentPlace", ""),
                     "contactName": (station_info.get("contact_name", "") if station_info else "") or fields.get("contactName", ""),
                     "contactPosition": (station_info.get("contact_position", "") if station_info else "") or fields.get("contactPosition", ""),
+                    "contactPhone": (station_info.get("contact_phone", "") if station_info else "") or fields.get("contactPhone", "") or fields.get("contact_phone", ""),
                     "photos": survey_photos_list,
                     **fields
                 }
@@ -333,6 +429,8 @@ class DatabaseService:
                     merged_fields["contactName"] = station_info.get("contact_name", "")
                 if not merged_fields.get("contactPosition") and station_info:
                     merged_fields["contactPosition"] = station_info.get("contact_position", "")
+                if not merged_fields.get("contactPhone") and station_info:
+                    merged_fields["contactPhone"] = station_info.get("contact_phone", "")
                 if not merged_fields.get("subdistrict") and station_info:
                     merged_fields["subdistrict"] = station_info.get("subdistrict", "")
                 if not merged_fields.get("district") and station_info:

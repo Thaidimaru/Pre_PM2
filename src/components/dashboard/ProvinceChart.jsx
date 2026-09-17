@@ -98,26 +98,6 @@ export function ProvinceChart({ provinces = [] }) {
             </div>
           </div>
 
-          {/* Map Legend */}
-          <div
-            className={cn(
-              'flex items-center justify-center gap-6 pt-4 text-xs',
-              isDark ? 'text-slate-400' : 'text-slate-600'
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_#00d49a]" />
-              <span>อนุญาต</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_6px_#ff4f67]" />
-              <span>ไม่อนุญาต</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-purple-500 shadow-[0_0_6px_#8b5cf6]" />
-              <span>รอพิจารณา</span>
-            </div>
-          </div>
         </div>
       </GlassCard>
     );

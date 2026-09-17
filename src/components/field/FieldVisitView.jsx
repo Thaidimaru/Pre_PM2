@@ -31,7 +31,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { fetchStations, submitSurvey } from '@/lib/api';
+import { fetchStations, submitSurvey, normalizeStationKey } from '@/lib/api';
 import { SurveyReportModal } from '@/components/export/SurveyReportModal';
 import { Printer, FileText, LayoutDashboard } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
@@ -64,13 +64,16 @@ export function FieldVisitView({ onNavigate }) {
         setStations(
           (data.stations || []).map((s) => ({
             village: s.village,
+            arabicVillage: normalizeStationKey(s.village),
             subdistrict: s.subdistrict,
             district: s.district,
             province: s.province,
-            installationPlace: s.installation_place,
-            equipmentPlace: s.equipment_place,
-            contactName: s.contact_name,
-            contactPosition: s.contact_position
+            installationPlace: s.installation_place || s.installationPlace,
+            equipmentPlace: s.equipment_place || s.equipmentPlace,
+            contactName: s.contact_name || s.contactName,
+            contactPosition: s.contact_position || s.contactPosition,
+            contactPhone: s.contact_phone || s.contactPhone || '',
+            houseNo: s.house_no || s.houseNo || '',
           }))
         );
       })
@@ -89,11 +92,15 @@ export function FieldVisitView({ onNavigate }) {
     });
   };
 
-  // Auto-fill installation and contact details when station is selected
-  const activeStation = useMemo(
-    () => stations.find((s) => s.village === formData.station),
-    [stations, formData.station]
-  );
+  // Auto-fill installation and contact details when station is selected (supports Thai & Arabic digits)
+  const activeStation = useMemo(() => {
+    const query = (formData.station || '').trim();
+    if (!query) return null;
+    const normQuery = normalizeStationKey(query);
+    return stations.find(
+      (s) => s.village === query || s.arabicVillage === normQuery || normalizeStationKey(s.village) === normQuery
+    );
+  }, [stations, formData.station]);
 
   useEffect(() => {
     if (activeStation) {
@@ -105,7 +112,9 @@ export function FieldVisitView({ onNavigate }) {
         installationPlace: activeStation.installationPlace || '',
         equipmentPlace: activeStation.equipmentPlace || '',
         contactName: activeStation.contactName || '',
-        contactPosition: activeStation.contactPosition || ''
+        contactPosition: activeStation.contactPosition || '',
+        contactVillage: activeStation.village || prev.contactVillage || '',
+        contactPhone: activeStation.contactPhone || prev.contactPhone || ''
       }));
     }
   }, [activeStation]);
