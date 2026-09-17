@@ -1,0 +1,20 @@
+{
+  "recordId": "PM-20260914-171122-8609",
+  "savedAt": "2026-09-14T10:11:22.778948+00:00",
+  "fields": {
+    "permit": "อนุญาต",
+    "radioStatus": "ปกติ",
+    "receiveStatus": "ไม่พบ",
+    "transmitStatus": "ไม่พบ",
+    "powerStatus": "ไม่มี",
+    "batteryStatus": "ไม่มี",
+    "station": "หมู่ 8 ทุ่งเอื้อง (ลำขนุน)",
+    "installationPlace": "ที่ทำการบ้านผู้ใหญ่บ้าน",
+    "equipmentPlace": "ที่ทำการบ้านผู้ใหญ่บ้าน",
+    "contactName": "นายหนูอิ่ม ปานนิล",
+    "contactPosition": "ผู้ใหญ่บ้าน",
+    "contactVillage": "กรมการปกครอง",
+    "contactPhone": "1234567890"
+  },
+  "photos": []
+}
