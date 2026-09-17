@@ -1,0 +1,27 @@
+{
+  "recordId": "PM-202609170728549-d209",
+  "savedAt": "2026-09-17T07:28:54.937Z",
+  "station": "หมู่ 5 โคกสาร",
+  "province": "เพชรบูรณ์",
+  "permit": "อนุญาต",
+  "fields": {
+    "permit": "อนุญาต",
+    "radioStatus": "ปกติ",
+    "receiveStatus": "ปกติ",
+    "transmitStatus": "ปกติ",
+    "powerStatus": "ปกติ",
+    "batteryStatus": "ปกติ",
+    "groundStatus": "ปกติ",
+    "station": "หมู่ 5 โคกสาร",
+    "province": "เพชรบูรณ์",
+    "district": "ชนแดน",
+    "subdistrict": "ซับพุทรา",
+    "installationPlace": "ศูนย์เการรียนรู้ฯ",
+    "equipmentPlace": "ศูนย์เการรียนรู้ฯ",
+    "contactName": "นายสมาน โกษาจันทร์",
+    "contactPosition": "ผู้ใหญ่บ้าน",
+    "contactVillage": "หมู่ 5 โคกสาร",
+    "contactPhone": "063-0290999"
+  },
+  "photos": []
+}
