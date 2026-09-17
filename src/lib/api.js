@@ -366,5 +366,27 @@ export async function submitSurvey(arg1, arg2, arg3) {
     console.warn('Server save had issue, saved to local cache:', serverError);
   }
 
-  return serverResult || { saved: true, recordId, savedAt };
+  return (
+    serverResult || {
+      saved: true,
+      recordId,
+      savedAt,
+      githubSynced: false,
+    }
+  );
+}
+
+export async function fetchGitHubStatus() {
+  try {
+    let res = await fetch('/api/github-status', { cache: 'no-store' }).catch(() => null);
+    if (!res || !res.ok) {
+      res = await fetch('/github-status', { cache: 'no-store' }).catch(() => null);
+    }
+    if (res && res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Failed to check GitHub status:', err);
+  }
+  return { configured: false, repo: 'Thaidimaru/Pre_PM2', branch: 'main' };
 }

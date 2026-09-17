@@ -4,7 +4,7 @@
   functions = "netlify/functions"
 
 [functions]
-  included_files = ["access-password.txt", "DATABASE.xlsx", "AGWBS.xlsx"]
+  included_files = ["access-password.txt", "DATABASE.xlsx", "AGWBS.xlsx", "data/**"]
 
 [[redirects]]
   from = "/login"
@@ -25,13 +25,19 @@
   force = true
 
 [[redirects]]
-  from = "/api/dashboard"
-  to = "/.netlify/functions/api/dashboard"
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/access-password.txt"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/github-token.txt"
   to = "/404"
   status = 404
   force = true

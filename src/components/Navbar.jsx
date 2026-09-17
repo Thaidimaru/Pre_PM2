@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Menu, X, Sun, Moon } from 'lucide-react';
+import { Calendar, Clock, Menu, X, Sun, Moon, GitBranch } from 'lucide-react';
 import { APP_VERSION } from '@/version';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import { fetchGitHubStatus } from '@/lib/api';
 import nbtcLogo from '@/assets/images/nbtc-logo-dashboard.png';
 
 export function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
   const { isDark, toggleTheme } = useTheme();
+  const [githubStatus, setGithubStatus] = useState({ configured: false, repo: 'Thaidimaru/Pre_PM2' });
   const [timeStr, setTimeStr] = useState(() =>
     new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   );
+
+  useEffect(() => {
+    fetchGitHubStatus().then((st) => {
+      if (st) setGithubStatus(st);
+    });
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -134,6 +142,28 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
               </span>
               <span className="text-xs font-medium">ระบบทำงานปกติ</span>
+            </div>
+
+            {/* GitHub sync status indicator */}
+            <div
+              className={cn(
+                'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                githubStatus.configured
+                  ? isDark
+                    ? 'border-sky-500/30 bg-sky-950/40 text-sky-300'
+                    : 'border-sky-300 bg-sky-50 text-sky-700 shadow-xs'
+                  : isDark
+                    ? 'border-slate-700 bg-slate-800/40 text-slate-400'
+                    : 'border-slate-300 bg-slate-100 text-slate-500'
+              )}
+              title={
+                githubStatus.configured
+                  ? `GitHub Sync: เชื่อมต่อแล้ว (${githubStatus.repo} [${githubStatus.branch || 'main'}])`
+                  : 'GitHub Sync: รอการตั้งค่า GITHUB_TOKEN บน Netlify/เซิร์ฟเวอร์'
+              }
+            >
+              <GitBranch className={cn('h-3.5 w-3.5', githubStatus.configured ? (isDark ? 'text-sky-400' : 'text-sky-600') : 'text-slate-400')} />
+              <span>{githubStatus.configured ? 'GitHub เชื่อมต่อ' : 'GitHub Sync พร้อม'}</span>
             </div>
 
             <div className={cn('h-6 w-px', isDark ? 'bg-slate-700/60' : 'bg-slate-300')} />

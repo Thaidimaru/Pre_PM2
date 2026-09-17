@@ -18,6 +18,8 @@ import sqlite3
 import threading
 import urllib.parse
 from urllib.parse import unquote, quote
+import urllib.request
+import urllib.error
 import xml.etree.ElementTree as ET
 import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -37,6 +39,8 @@ class AppConfig:
     AGWBS_XLSX = ROOT / "AGWBS.xlsx"
     PHOTOS_DIR = ROOT / "photos"
     ASSETS_DIR = ROOT / "assets"
+    SURVEYS_DIR = ROOT / "data" / "surveys"
+    GITHUB_TOKEN_PATH = ROOT / "github-token.txt"
     
     HOST = "0.0.0.0"
     PORT = int(os.environ.get("PORT", 8765))
@@ -302,6 +306,23 @@ class DatabaseService:
             except Exception as e:
                 print(f"Warning: Failed to seed {path.name}: {e}")
 
+        # Also seed from data/surveys/*.json
+        if AppConfig.SURVEYS_DIR.exists():
+            for path in sorted(AppConfig.SURVEYS_DIR.glob("*.json")):
+                try:
+                    record = json.loads(path.read_text(encoding="utf-8-sig"))
+                    record_id = record.get("recordId") or path.stem
+                    saved_at = record.get("savedAt") or dt.datetime.fromtimestamp(
+                        path.stat().st_mtime, dt.timezone.utc
+                    ).isoformat()
+                    fields = record.get("fields", {})
+                    conn.execute(
+                        "INSERT OR IGNORE INTO surveys(record_id, saved_at, fields_json) VALUES (?, ?, ?)",
+                        (record_id, saved_at, json.dumps(fields, ensure_ascii=False))
+                    )
+                except Exception as e:
+                    print(f"Warning: Failed to seed {path.name}: {e}")
+
     @staticmethod
     def _read_xlsx_rows(path: Path) -> list:
         """Fast OpenXML spreadsheet parser without third-party dependencies."""
@@ -467,8 +488,92 @@ class DatabaseService:
         }
 
     @classmethod
-    def save_survey(cls, fields: dict, photos: list) -> str:
-        """Save survey record to SQLite, store photos, and create backup JSON."""
+    def get_github_token(cls) -> str:
+        """Get GitHub personal access token from env or github-token.txt."""
+        for env_key in ("GITHUB_TOKEN", "GH_TOKEN", "GITHUB_PAT"):
+            val = os.environ.get(env_key)
+            if val and val.strip():
+                return val.strip()
+        if AppConfig.GITHUB_TOKEN_PATH.exists():
+            try:
+                return AppConfig.GITHUB_TOKEN_PATH.read_text(encoding="utf-8-sig").strip()
+            except Exception:
+                pass
+        return ""
+
+    @classmethod
+    def commit_survey_to_github(cls, record_id: str, survey_payload: dict) -> dict:
+        """Commit survey JSON directly to GitHub repository (Thaidimaru/Pre_PM2)."""
+        token = cls.get_github_token()
+        if not token:
+            return {"success": False, "reason": "no_token"}
+
+        repo = os.environ.get("GITHUB_REPO", "Thaidimaru/Pre_PM2")
+        branch = os.environ.get("GITHUB_BRANCH", "main")
+        file_path = f"data/surveys/{record_id}.json"
+        station_name = survey_payload.get("fields", {}).get("station") or "Station"
+
+        try:
+            # Check if file already exists on GitHub to obtain sha for update
+            existing_sha = None
+            req_get = urllib.request.Request(
+                f"https://api.github.com/repos/{repo}/contents/{file_path}?ref={branch}",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/vnd.github+json",
+                    "User-Agent": "NBTC-PrePM-Survey-App",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                }
+            )
+            try:
+                with urllib.request.urlopen(req_get, timeout=10) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        existing_sha = data.get("sha")
+            except Exception:
+                pass
+
+            content_bytes = json.dumps(survey_payload, ensure_ascii=False, indent=2).encode("utf-8")
+            content_b64 = base64.b64encode(content_bytes).decode("ascii")
+
+            body_dict = {
+                "message": f"feat(survey): Pre-PM survey {record_id} - {station_name}",
+                "content": content_b64,
+                "branch": branch,
+                "committer": {
+                    "name": "NBTC Survey System",
+                    "email": "survey-bot@nbtc.local",
+                }
+            }
+            if existing_sha:
+                body_dict["sha"] = existing_sha
+
+            req_put = urllib.request.Request(
+                f"https://api.github.com/repos/{repo}/contents/{file_path}",
+                data=json.dumps(body_dict).encode("utf-8"),
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/vnd.github+json",
+                    "Content-Type": "application/json",
+                    "User-Agent": "NBTC-PrePM-Survey-App",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+                method="PUT"
+            )
+            with urllib.request.urlopen(req_put, timeout=15) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
+                return {
+                    "success": True,
+                    "commitUrl": res_data.get("commit", {}).get("html_url", ""),
+                    "sha": res_data.get("content", {}).get("sha", "")
+                }
+        except Exception as e:
+            print(f"Warning: Failed to commit {record_id} to GitHub: {e}")
+            return {"success": False, "message": str(e)}
+
+    @classmethod
+    def save_survey(cls, fields: dict, photos: list) -> tuple:
+        """Save survey record to SQLite, store photos, save to data/surveys, and commit to GitHub."""
         timestamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
         record_id = f"PM-{timestamp}-{secrets.token_hex(2)}"
         saved_at = dt.datetime.now(dt.timezone.utc).isoformat()
@@ -489,7 +594,34 @@ class DatabaseService:
                         (survey_id, photo.get("name", "photo"), photo.get("type", "image/jpeg"), photo_bytes)
                     )
 
-        # Write local backup JSON for compatibility with export scripts
+        # Write to data/surveys/{record_id}.json
+        gh_res = {"success": False}
+        try:
+            AppConfig.SURVEYS_DIR.mkdir(parents=True, exist_ok=True)
+            survey_file = AppConfig.SURVEYS_DIR / f"{record_id}.json"
+            full_survey_data = {
+                "recordId": record_id,
+                "savedAt": saved_at,
+                "station": fields.get("station") or fields.get("stationSelect") or "ไม่ระบุสถานี",
+                "province": fields.get("province", ""),
+                "permit": "อนุญาต" if fields.get("permit") == "on" else (fields.get("permit") or "ยังไม่ระบุ"),
+                "fields": fields,
+                "photos": [
+                    {
+                        "id": idx + 1,
+                        "name": p.get("name") or f"photo_{idx + 1}.jpg",
+                        "contentType": p.get("type") or "image/jpeg",
+                        "data": p.get("data", "")
+                    }
+                    for idx, p in enumerate(photos)
+                ]
+            }
+            survey_file.write_text(json.dumps(full_survey_data, ensure_ascii=False, indent=2), encoding="utf-8")
+            gh_res = cls.commit_survey_to_github(record_id, full_survey_data)
+        except Exception as e:
+            print(f"Warning: Failed to write survey to {AppConfig.SURVEYS_DIR}: {e}")
+
+        # Write local backup JSON for compatibility with legacy export scripts
         backup_file = AppConfig.ROOT / f"survey-{timestamp}.json"
         try:
             backup_data = {
@@ -501,7 +633,7 @@ class DatabaseService:
         except Exception as e:
             print(f"Warning: Failed to write backup {backup_file.name}: {e}")
 
-        return record_id
+        return record_id, gh_res
 
 
 # Initialize Singletons
@@ -656,6 +788,16 @@ class SurveyRequestHandler(BaseHTTPRequestHandler):
             })
             return
 
+        # 4.3 API: GitHub Sync Status
+        if parsed_path == "/api/github-status":
+            token = DatabaseService.get_github_token()
+            self.send_json_response(200, {
+                "configured": bool(token),
+                "repo": os.environ.get("GITHUB_REPO", "Thaidimaru/Pre_PM2"),
+                "branch": os.environ.get("GITHUB_BRANCH", "main")
+            })
+            return
+
         # 5. Not Found
         self.send_json_response(404, {"error": "Not found"})
 
@@ -675,11 +817,16 @@ class SurveyRequestHandler(BaseHTTPRequestHandler):
 
             # 2. Save Survey Endpoint
             if path in ("/save", "/api/save"):
-
                 fields = payload.get("fields", {})
                 photos = payload.get("photos", [])
-                record_id = DatabaseService.save_survey(fields, photos)
-                self.send_json_response(200, {"saved": True, "recordId": record_id})
+                record_id, gh_res = DatabaseService.save_survey(fields, photos)
+                self.send_json_response(200, {
+                    "saved": True,
+                    "recordId": record_id,
+                    "savedAt": dt.datetime.now(dt.timezone.utc).isoformat(),
+                    "githubSynced": bool(gh_res.get("success")),
+                    "commitUrl": gh_res.get("commitUrl")
+                })
                 return
 
             self.send_json_response(404, {"error": "Not found"})

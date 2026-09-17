@@ -8,3 +8,6 @@ photos/
 .DS_Store
 **/.DS_Store
 *_backup.xlsx
+github-token.txt
+.env
+.env.*

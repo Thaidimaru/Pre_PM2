@@ -16,6 +16,8 @@ const STATIONS_KEY = "stations.json";
 const LEGACY_SURVEYS_KEY = "surveys.json";
 const SURVEY_PREFIX = "survey/";
 const TMP_SURVEY_DIR = path.join(os.tmpdir(), "nbtc-pre-pm-surveys");
+const SURVEYS_DIR = path.join(ROOT, "data/surveys");
+const GITHUB_TOKEN_PATH = path.join(ROOT, "github-token.txt");
 const MAX_PHOTO_DATA_CHARS = 5600000;
 const TOKEN_TTL_MS = 8 * 60 * 60 * 1000;
 
@@ -62,6 +64,173 @@ function isAuthorized(event) {
     return Number(payload.exp) > Date.now();
   } catch {
     return false;
+  }
+}
+
+// ==============================================================================
+// GitHub Repository Sync (Thaidimaru/Pre_PM2)
+// ==============================================================================
+
+function getGitHubToken() {
+  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN.trim();
+  if (process.env.GH_TOKEN) return process.env.GH_TOKEN.trim();
+  if (process.env.GITHUB_PAT) return process.env.GITHUB_PAT.trim();
+  try {
+    if (fs.existsSync(GITHUB_TOKEN_PATH)) {
+      return fs.readFileSync(GITHUB_TOKEN_PATH, "utf8").trim();
+    }
+  } catch {}
+  return "";
+}
+
+function getGitHubRepo() {
+  return process.env.GITHUB_REPO || "Thaidimaru/Pre_PM2";
+}
+
+function getGitHubBranch() {
+  return process.env.GITHUB_BRANCH || "main";
+}
+
+async function getExistingFileSha(filePath) {
+  const token = getGitHubToken();
+  if (!token) return null;
+  const repo = getGitHubRepo();
+  const branch = getGitHubBranch();
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "NBTC-PrePM-Survey-App",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.sha || null;
+    }
+  } catch {}
+  return null;
+}
+
+async function commitSurveyToGitHub(recordId, surveyPayload) {
+  const token = getGitHubToken();
+  if (!token) {
+    return { success: false, reason: "no_token", message: "GITHUB_TOKEN not configured" };
+  }
+  const repo = getGitHubRepo();
+  const branch = getGitHubBranch();
+  const filePath = `data/surveys/${recordId}.json`;
+  const stationName = surveyPayload.fields?.station || surveyPayload.station || "Station";
+
+  try {
+    const existingSha = await getExistingFileSha(filePath);
+    const contentBase64 = Buffer.from(JSON.stringify(surveyPayload, null, 2), "utf8").toString("base64");
+
+    const bodyData = {
+      message: `feat(survey): Pre-PM survey ${recordId} - ${stationName}`,
+      content: contentBase64,
+      branch,
+      committer: {
+        name: "NBTC Survey System",
+        email: "survey-bot@nbtc.local",
+      },
+    };
+    if (existingSha) {
+      bodyData.sha = existingSha;
+    }
+
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "NBTC-PrePM-Survey-App",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify(bodyData),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        success: true,
+        commitUrl: data.commit?.html_url || "",
+        sha: data.content?.sha || "",
+      };
+    } else {
+      const errBody = await res.json().catch(() => ({}));
+      console.warn(`GitHub API commit failed (${res.status}):`, errBody);
+      return {
+        success: false,
+        status: res.status,
+        message: errBody.message || "GitHub API commit failed",
+      };
+    }
+  } catch (err) {
+    console.error("Error committing survey to GitHub:", err);
+    return { success: false, message: err.message };
+  }
+}
+
+let cachedGitHubSurveys = null;
+let lastGitHubFetchTime = 0;
+const GITHUB_CACHE_TTL = 30000;
+
+async function fetchSurveysFromGitHub() {
+  const token = getGitHubToken();
+  if (!token) return [];
+
+  const now = Date.now();
+  if (cachedGitHubSurveys && (now - lastGitHubFetchTime) < GITHUB_CACHE_TTL) {
+    return cachedGitHubSurveys;
+  }
+
+  const repo = getGitHubRepo();
+  const branch = getGitHubBranch();
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/data/surveys?ref=${branch}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "NBTC-PrePM-Survey-App",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+
+    if (!res.ok) {
+      return cachedGitHubSurveys || [];
+    }
+
+    const items = await res.json();
+    if (!Array.isArray(items)) return [];
+
+    const jsonFiles = items.filter((f) => f.type === "file" && f.name.endsWith(".json"));
+    const surveys = (await Promise.all(
+      jsonFiles.slice(0, 50).map(async (file) => {
+        try {
+          const fileRes = await fetch(file.download_url, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "User-Agent": "NBTC-PrePM-Survey-App",
+            },
+          });
+          if (fileRes.ok) {
+            return await fileRes.json();
+          }
+        } catch {}
+        return null;
+      })
+    )).filter((s) => s && s.recordId);
+
+    cachedGitHubSurveys = surveys;
+    lastGitHubFetchTime = now;
+    return surveys;
+  } catch (e) {
+    console.warn("fetchSurveysFromGitHub error:", e);
+    return cachedGitHubSurveys || [];
   }
 }
 
@@ -186,6 +355,16 @@ async function writeJson(key, value) {
   } catch (err) {
     console.warn("Could not write to TMP_SURVEY_DIR:", err);
   }
+
+  // 5. Persist to data/surveys on disk if it is a survey object
+  if (key.startsWith(SURVEY_PREFIX) && value && value.recordId) {
+    try {
+      if (!fs.existsSync(SURVEYS_DIR)) {
+        fs.mkdirSync(SURVEYS_DIR, { recursive: true });
+      }
+      fs.writeFileSync(path.join(SURVEYS_DIR, `${value.recordId}.json`), JSON.stringify(value, null, 2), "utf8");
+    } catch {}
+  }
 }
 
 function loadLocalSurveys() {
@@ -233,6 +412,31 @@ function loadLocalSurveys() {
       } catch {}
     }
   } catch {}
+
+  // 3. Load from data/surveys/*.json
+  try {
+    if (fs.existsSync(SURVEYS_DIR)) {
+      const sFiles = fs.readdirSync(SURVEYS_DIR).filter((f) => f.endsWith(".json"));
+      for (const sf of sFiles) {
+        try {
+          const content = JSON.parse(fs.readFileSync(path.join(SURVEYS_DIR, sf), "utf8"));
+          const recordId = content.recordId || sf.replace(/\.json$/, "");
+          if (!seen.has(recordId)) {
+            seen.add(recordId);
+            localSurveys.push({
+              recordId,
+              savedAt: content.savedAt || new Date().toISOString(),
+              fields: content.fields || {},
+              photos: content.photos || [],
+            });
+          }
+        } catch {}
+      }
+    }
+  } catch (e) {
+    console.warn("Could not read SURVEYS_DIR:", e);
+  }
+
   return localSurveys;
 }
 
@@ -362,6 +566,18 @@ async function getStations() {
 async function getAllSurveys() {
   const surveys = [];
   const seenIds = new Set();
+
+  // 0. GitHub Repository Surveys (Thaidimaru/Pre_PM2)
+  try {
+    const ghSurveys = await fetchSurveysFromGitHub();
+    for (const s of ghSurveys) {
+      if (s && s.recordId && !seenIds.has(s.recordId)) {
+        seenIds.add(s.recordId);
+        surveys.push(s);
+        memoryStore.set(`${SURVEY_PREFIX}${s.recordId}.json`, s);
+      }
+    }
+  } catch {}
 
   // 1. Vercel KV Store
   try {
@@ -595,6 +811,15 @@ exports.handler = async (event) => {
       return json(200, { stations: await getStations() });
     }
 
+    if (event.httpMethod === "GET" && route === "github-status") {
+      const token = getGitHubToken();
+      return json(200, {
+        configured: !!token,
+        repo: getGitHubRepo(),
+        branch: getGitHubBranch(),
+      });
+    }
+
     if (event.httpMethod === "POST" && route === "save") {
       const payload = JSON.parse(event.body || "{}");
       const fields = payload.fields && typeof payload.fields === "object" ? payload.fields : {};
@@ -615,14 +840,38 @@ exports.handler = async (event) => {
 
       const recordId = `PM-${new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 15)}-${crypto.randomBytes(2).toString("hex")}`;
       const savedAt = new Date().toISOString();
-      await writeJson(`${SURVEY_PREFIX}${recordId}.json`, {
+      const stationName = fields.station || fields.stationSelect || "ไม่ระบุสถานี";
+      const province = fields.province || "";
+      const permit = fields.permit === "on" ? "อนุญาต" : fields.permit || "ยังไม่ระบุ";
+
+      const surveyRecord = {
         recordId,
         savedAt,
+        station: stationName,
+        province,
+        permit,
         fields,
         photos: sanitizedPhotos,
-      });
+      };
 
-      return json(200, { saved: true, recordId, savedAt });
+      await writeJson(`${SURVEY_PREFIX}${recordId}.json`, surveyRecord);
+
+      // Also commit directly to GitHub repository (Thaidimaru/Pre_PM2)
+      let ghResult = { success: false, reason: "not_attempted" };
+      try {
+        ghResult = await commitSurveyToGitHub(recordId, surveyRecord);
+      } catch (ghErr) {
+        console.warn("GitHub commit error:", ghErr);
+      }
+
+      return json(200, {
+        saved: true,
+        recordId,
+        savedAt,
+        githubSynced: !!ghResult.success,
+        commitUrl: ghResult.commitUrl || null,
+        githubError: !ghResult.success && ghResult.message ? ghResult.message : null,
+      });
     }
 
     return json(404, { error: "not_found", message: "Endpoint not found" });

@@ -188,8 +188,12 @@ export function FieldVisitView({ onNavigate }) {
         }
       });
 
+      const successText = result?.githubSynced
+        ? `บันทึกข้อมูลรหัส ${result.recordId} และบันทึกลงใน GitHub เรียบร้อยแล้ว`
+        : `บันทึกข้อมูลรหัส ${result.recordId} เรียบร้อยแล้ว`;
+
       setStatusMessage({
-        text: `บันทึกข้อมูลรหัส ${result.recordId} เรียบร้อยแล้ว`,
+        text: successText,
         type: 'success'
       });
 
