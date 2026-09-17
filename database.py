@@ -496,7 +496,9 @@ class DatabaseService:
                 return val.strip()
         if AppConfig.GITHUB_TOKEN_PATH.exists():
             try:
-                return AppConfig.GITHUB_TOKEN_PATH.read_text(encoding="utf-8-sig").strip()
+                val = AppConfig.GITHUB_TOKEN_PATH.read_text(encoding="utf-8-sig").strip()
+                if val:
+                    return val
             except Exception:
                 pass
         return ""

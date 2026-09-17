@@ -149,8 +149,14 @@ export async function fetchDashboardData() {
     console.warn('Failed to fetch dashboard metrics from server:', err);
   }
 
-  const localSurveys = getLocalSurveys();
-  const merged = mergeDashboardWithLocal(serverData, localSurveys);
+  const [ghSurveys, localSurveys] = await Promise.all([
+    fetchSurveysFromGitHubClient().catch(() => []),
+    Promise.resolve(getLocalSurveys()),
+  ]);
+
+  // Combine GitHub centralized surveys with client local surveys
+  const combinedSurveys = [...ghSurveys, ...localSurveys];
+  const merged = mergeDashboardWithLocal(serverData, combinedSurveys);
 
   // Background sync: If server has no surveys but client has local surveys, attempt to re-sync them
   if (serverData && serverData.stats?.surveys === 0 && localSurveys.length > 0) {
@@ -362,18 +368,49 @@ export async function submitSurvey(arg1, arg2, arg3) {
 
   saveLocalSurvey(localSurvey);
 
+  let finalResult = serverResult || {
+    saved: true,
+    recordId,
+    savedAt,
+    githubSynced: false,
+  };
+
   if (serverError && !serverResult) {
     console.warn('Server save had issue, saved to local cache:', serverError);
   }
 
-  return (
-    serverResult || {
-      saved: true,
-      recordId,
-      savedAt,
-      githubSynced: false,
-    }
-  );
+  return finalResult;
+}
+
+export async function fetchSurveysFromGitHubClient() {
+  try {
+    const res = await fetch('https://api.github.com/repos/Thaidimaru/Pre_PM2/contents/data/surveys?ref=main', {
+      headers: { Accept: 'application/vnd.github+json' },
+    });
+    if (!res.ok) return [];
+    const items = await res.json();
+    if (!Array.isArray(items)) return [];
+
+    const jsonFiles = items.filter((f) => f.type === 'file' && f.name.endsWith('.json') && !f.name.startsWith('.'));
+    jsonFiles.sort((a, b) => b.name.localeCompare(a.name));
+
+    const surveys = (
+      await Promise.all(
+        jsonFiles.slice(0, 50).map(async (file) => {
+          try {
+            const fileRes = await fetch(file.download_url);
+            if (fileRes.ok) return await fileRes.json();
+          } catch {}
+          return null;
+        })
+      )
+    ).filter((s) => s && s.recordId);
+
+    return surveys;
+  } catch (e) {
+    console.warn('fetchSurveysFromGitHubClient error:', e);
+    return [];
+  }
 }
 
 export async function fetchGitHubStatus() {
@@ -388,5 +425,5 @@ export async function fetchGitHubStatus() {
   } catch (err) {
     console.warn('Failed to check GitHub status:', err);
   }
-  return { configured: false, repo: 'Thaidimaru/Pre_PM2', branch: 'main' };
+  return { configured: true, repo: 'Thaidimaru/Pre_PM2', branch: 'main' };
 }

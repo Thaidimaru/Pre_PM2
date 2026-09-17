@@ -77,7 +77,8 @@ function getGitHubToken() {
   if (process.env.GITHUB_PAT) return process.env.GITHUB_PAT.trim();
   try {
     if (fs.existsSync(GITHUB_TOKEN_PATH)) {
-      return fs.readFileSync(GITHUB_TOKEN_PATH, "utf8").trim();
+      const val = fs.readFileSync(GITHUB_TOKEN_PATH, "utf8").trim();
+      if (val) return val;
     }
   } catch {}
   return "";
@@ -180,24 +181,26 @@ const GITHUB_CACHE_TTL = 30000;
 
 async function fetchSurveysFromGitHub() {
   const token = getGitHubToken();
-  if (!token) return [];
+  const repo = getGitHubRepo();
+  const branch = getGitHubBranch();
 
   const now = Date.now();
   if (cachedGitHubSurveys && (now - lastGitHubFetchTime) < GITHUB_CACHE_TTL) {
     return cachedGitHubSurveys;
   }
 
-  const repo = getGitHubRepo();
-  const branch = getGitHubBranch();
+  const reqHeaders = {
+    Accept: "application/vnd.github+json",
+    "User-Agent": "NBTC-PrePM-Survey-App",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+  if (token) {
+    reqHeaders["Authorization"] = `Bearer ${token}`;
+  }
 
   try {
     const res = await fetch(`https://api.github.com/repos/${repo}/contents/data/surveys?ref=${branch}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "User-Agent": "NBTC-PrePM-Survey-App",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
+      headers: reqHeaders,
     });
 
     if (!res.ok) {
@@ -207,16 +210,16 @@ async function fetchSurveysFromGitHub() {
     const items = await res.json();
     if (!Array.isArray(items)) return [];
 
-    const jsonFiles = items.filter((f) => f.type === "file" && f.name.endsWith(".json"));
+    const jsonFiles = items.filter((f) => f.type === "file" && f.name.endsWith(".json") && !f.name.startsWith("."));
+    // Sort descending so newer surveys are loaded first
+    jsonFiles.sort((a, b) => b.name.localeCompare(a.name));
+
     const surveys = (await Promise.all(
       jsonFiles.slice(0, 50).map(async (file) => {
         try {
-          const fileRes = await fetch(file.download_url, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "User-Agent": "NBTC-PrePM-Survey-App",
-            },
-          });
+          const fileHeaders = { "User-Agent": "NBTC-PrePM-Survey-App" };
+          if (token) fileHeaders["Authorization"] = `Bearer ${token}`;
+          const fileRes = await fetch(file.download_url, { headers: fileHeaders });
           if (fileRes.ok) {
             return await fileRes.json();
           }
