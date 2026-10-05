@@ -1,0 +1,27 @@
+{
+  "recordId": "PM-202609210735267-fa8b",
+  "savedAt": "2026-09-21T07:35:26.731Z",
+  "station": "หมู่ 11 คำเจริญ",
+  "province": "ขอนแก่น",
+  "permit": "อนุญาต",
+  "fields": {
+    "permit": "อนุญาต",
+    "radioStatus": "ปกติ",
+    "receiveStatus": "ปกติ",
+    "transmitStatus": "ปกติ",
+    "powerStatus": "ปกติ",
+    "batteryStatus": "ปกติ",
+    "groundStatus": "ปกติ",
+    "station": "หมู่ 11 คำเจริญ",
+    "province": "ขอนแก่น",
+    "district": "เขาสวนกวาง",
+    "subdistrict": "ดงเมืองแอม",
+    "installationPlace": "ที่ทำการบ้านผู้ใหญ่บ้าน",
+    "equipmentPlace": "ที่ทำการบ้านผู้ใหญ่บ้าน",
+    "contactName": "นายสมคิด เย็นกลาง",
+    "contactPosition": "ผู้ใหญ่บ้าน",
+    "contactVillage": "หมู่ 11 คำเจริญ",
+    "contactPhone": "080-103-2713"
+  },
+  "photos": []
+}

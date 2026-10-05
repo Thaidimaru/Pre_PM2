@@ -179,9 +179,8 @@ class DatabaseService:
             # Synchronize stations from DATABASE.xlsx and AGWBS.xlsx
             cls._sync_stations(conn)
 
-            # Seed legacy survey JSON files if empty
-            if conn.execute("SELECT COUNT(*) FROM surveys").fetchone()[0] == 0:
-                cls._seed_surveys_from_json(conn)
+            # Seed survey JSON files from root and data/surveys/
+            cls._seed_surveys_from_json(conn)
 
     @classmethod
     def _sync_stations(cls, conn: sqlite3.Connection):
@@ -320,6 +319,23 @@ class DatabaseService:
                         "INSERT OR IGNORE INTO surveys(record_id, saved_at, fields_json) VALUES (?, ?, ?)",
                         (record_id, saved_at, json.dumps(fields, ensure_ascii=False))
                     )
+                    s_row = conn.execute("SELECT id FROM surveys WHERE record_id = ?", (record_id,)).fetchone()
+                    if s_row:
+                        s_id = s_row[0]
+                        for p in record.get("photos", []):
+                            raw_b64 = p.get("data", "")
+                            if raw_b64:
+                                p_name = p.get("name", "photo")
+                                p_exists = conn.execute("SELECT id FROM survey_photos WHERE survey_id = ? AND name = ?", (s_id, p_name)).fetchone()
+                                if not p_exists:
+                                    try:
+                                        p_bytes = base64.b64decode(raw_b64)
+                                        conn.execute(
+                                            "INSERT INTO survey_photos (survey_id, name, content_type, data) VALUES (?, ?, ?, ?)",
+                                            (s_id, p_name, p.get("contentType") or p.get("type") or "image/jpeg", p_bytes)
+                                        )
+                                    except Exception:
+                                        pass
                 except Exception as e:
                     print(f"Warning: Failed to seed {path.name}: {e}")
 
@@ -502,6 +518,84 @@ class DatabaseService:
             except Exception:
                 pass
         return ""
+
+    _cached_auth_status = None
+    _last_auth_time = 0
+
+    @classmethod
+    def check_github_auth(cls) -> dict:
+        import time
+        now = time.time()
+        if cls._cached_auth_status and (now - cls._last_auth_time) < 30:
+            return cls._cached_auth_status
+
+        token = cls.get_github_token()
+        repo = os.environ.get("GITHUB_REPO", "Thaidimaru/Pre_PM2")
+        branch = os.environ.get("GITHUB_BRANCH", "main")
+
+        if not token:
+            cls._cached_auth_status = {
+                "configured": False,
+                "valid": False,
+                "reason": "no_token",
+                "message": "ยังไม่ได้ระบุ GITHUB_TOKEN บนเซิร์ฟเวอร์",
+                "repo": repo,
+                "branch": branch
+            }
+            cls._last_auth_time = now
+            return cls._cached_auth_status
+
+        try:
+            req = urllib.request.Request(
+                "https://api.github.com/user",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/vnd.github+json",
+                    "User-Agent": "NBTC-PrePM-Survey-App"
+                }
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    cls._cached_auth_status = {
+                        "configured": True,
+                        "valid": True,
+                        "user": data.get("login", "authorized"),
+                        "message": "เชื่อมต่อ GitHub สำเร็จ",
+                        "repo": repo,
+                        "branch": branch
+                    }
+        except urllib.error.HTTPError as e:
+            if e.code == 401:
+                cls._cached_auth_status = {
+                    "configured": True,
+                    "valid": False,
+                    "reason": "bad_credentials",
+                    "message": "GitHub Token หมดอายุหรือถูกเพิกถอน (401 Bad credentials) กรุณาอัปเดต Token ใหม่",
+                    "repo": repo,
+                    "branch": branch
+                }
+            else:
+                cls._cached_auth_status = {
+                    "configured": True,
+                    "valid": False,
+                    "reason": "http_error",
+                    "message": f"GitHub API error: HTTP {e.code}",
+                    "repo": repo,
+                    "branch": branch
+                }
+        except Exception as e:
+            cls._cached_auth_status = {
+                "configured": True,
+                "valid": False,
+                "reason": "network_error",
+                "message": f"ไม่สามารถเชื่อมต่อ GitHub ได้: {e}",
+                "repo": repo,
+                "branch": branch
+            }
+
+        cls._last_auth_time = now
+        return cls._cached_auth_status
 
     @classmethod
     def commit_survey_to_github(cls, record_id: str, survey_payload: dict) -> dict:
@@ -792,12 +886,8 @@ class SurveyRequestHandler(BaseHTTPRequestHandler):
 
         # 4.3 API: GitHub Sync Status
         if parsed_path == "/api/github-status":
-            token = DatabaseService.get_github_token()
-            self.send_json_response(200, {
-                "configured": bool(token),
-                "repo": os.environ.get("GITHUB_REPO", "Thaidimaru/Pre_PM2"),
-                "branch": os.environ.get("GITHUB_BRANCH", "main")
-            })
+            status = DatabaseService.check_github_auth()
+            self.send_json_response(200, status)
             return
 
         # 5. Not Found
@@ -827,7 +917,8 @@ class SurveyRequestHandler(BaseHTTPRequestHandler):
                     "recordId": record_id,
                     "savedAt": dt.datetime.now(dt.timezone.utc).isoformat(),
                     "githubSynced": bool(gh_res.get("success")),
-                    "commitUrl": gh_res.get("commitUrl")
+                    "commitUrl": gh_res.get("commitUrl"),
+                    "githubError": gh_res.get("message") if not gh_res.get("success") else None
                 })
                 return
 

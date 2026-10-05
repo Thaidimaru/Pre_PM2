@@ -5,10 +5,15 @@
   "outputDirectory": "dist",
   "functions": {
     "api/*.js": {
-      "includeFiles": "{DATABASE.xlsx,AGWBS.xlsx,access-password.txt,netlify/functions/api.js,data/seed_surveys.json,survey-*.json,data/surveys/**}"
+      "includeFiles": "{DATABASE.xlsx,AGWBS.xlsx,access-password.txt,data/seed_surveys.json,survey-*.json,data/surveys/**}"
     }
   },
   "rewrites": [
+    { "source": "/access-password.txt", "destination": "/404" },
+    { "source": "/github-token.txt", "destination": "/404" },
+    { "source": "/survey.db", "destination": "/404" },
+    { "source": "/DATABASE.xlsx", "destination": "/404" },
+    { "source": "/AGWBS.xlsx", "destination": "/404" },
     { "source": "/api/login", "destination": "/api/login" },
     { "source": "/api/database", "destination": "/api/database" },
     { "source": "/api/save", "destination": "/api/save" },

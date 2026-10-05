@@ -149,36 +149,17 @@ export async function fetchDashboardData() {
     console.warn('Failed to fetch dashboard metrics from server:', err);
   }
 
-  const [ghSurveys, localSurveys] = await Promise.all([
-    fetchSurveysFromGitHubClient().catch(() => []),
-    Promise.resolve(getLocalSurveys()),
-  ]);
+  const localSurveys = getLocalSurveys();
 
-  // Combine GitHub centralized surveys with client local surveys
+  // If server responded with valid survey metrics, prioritize server data + local pending surveys
+  if (serverData && Array.isArray(serverData.recent)) {
+    return mergeDashboardWithLocal(serverData, localSurveys);
+  }
+
+  // Fallback: If server is completely unavailable (offline / preview mode), fetch from GitHub client
+  const ghSurveys = await fetchSurveysFromGitHubClient().catch(() => []);
   const combinedSurveys = [...ghSurveys, ...localSurveys];
   const merged = mergeDashboardWithLocal(serverData, combinedSurveys);
-
-  // Background sync: If server has no surveys but client has local surveys, attempt to re-sync them
-  if (serverData && serverData.stats?.surveys === 0 && localSurveys.length > 0) {
-    Promise.all(
-      localSurveys.slice(0, 5).map((s) => {
-        return fetch('/api/save', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fields: s.fields || {},
-            photos: (s.photos || []).map((p) => ({
-              name: p.name,
-              type: p.contentType,
-              data: p.dataUrl && p.dataUrl.startsWith('data:') ? p.dataUrl.split(',')[1] : '',
-            })),
-          }),
-        }).catch(() => null);
-      })
-    ).catch(() => { });
-  }
 
   return merged;
 }
@@ -382,21 +363,29 @@ export async function submitSurvey(arg1, arg2, arg3) {
   return finalResult;
 }
 
+let clientGhSurveysCache = null;
+let clientGhLastFetchTime = 0;
+const CLIENT_GH_CACHE_TTL = 60000;
+
 export async function fetchSurveysFromGitHubClient() {
+  const now = Date.now();
+  if (clientGhSurveysCache && (now - clientGhLastFetchTime) < CLIENT_GH_CACHE_TTL) {
+    return clientGhSurveysCache;
+  }
   try {
     const res = await fetch('https://api.github.com/repos/Thaidimaru/Pre_PM2/contents/data/surveys?ref=main', {
       headers: { Accept: 'application/vnd.github+json' },
     });
-    if (!res.ok) return [];
+    if (!res.ok) return clientGhSurveysCache || [];
     const items = await res.json();
-    if (!Array.isArray(items)) return [];
+    if (!Array.isArray(items)) return clientGhSurveysCache || [];
 
     const jsonFiles = items.filter((f) => f.type === 'file' && f.name.endsWith('.json') && !f.name.startsWith('.'));
     jsonFiles.sort((a, b) => b.name.localeCompare(a.name));
 
     const surveys = (
       await Promise.all(
-        jsonFiles.slice(0, 50).map(async (file) => {
+        jsonFiles.slice(0, 30).map(async (file) => {
           try {
             const fileRes = await fetch(file.download_url);
             if (fileRes.ok) return await fileRes.json();
@@ -406,10 +395,12 @@ export async function fetchSurveysFromGitHubClient() {
       )
     ).filter((s) => s && s.recordId);
 
+    clientGhSurveysCache = surveys;
+    clientGhLastFetchTime = now;
     return surveys;
   } catch (e) {
     console.warn('fetchSurveysFromGitHubClient error:', e);
-    return [];
+    return clientGhSurveysCache || [];
   }
 }
 
@@ -425,5 +416,5 @@ export async function fetchGitHubStatus() {
   } catch (err) {
     console.warn('Failed to check GitHub status:', err);
   }
-  return { configured: true, repo: 'Thaidimaru/Pre_PM2', branch: 'main' };
+  return { configured: false, valid: false, repo: 'Thaidimaru/Pre_PM2', branch: 'main' };
 }

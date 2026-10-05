@@ -1,0 +1,27 @@
+{
+  "recordId": "PM-202609170727232-edb9",
+  "savedAt": "2026-09-17T07:27:23.293Z",
+  "station": "หมู่ 1 ทุ่งทอง",
+  "province": "นครสวรรค์",
+  "permit": "อนุญาต",
+  "fields": {
+    "permit": "อนุญาต",
+    "radioStatus": "ปกติ",
+    "receiveStatus": "ปกติ",
+    "transmitStatus": "ปกติ",
+    "powerStatus": "ปกติ",
+    "batteryStatus": "ปกติ",
+    "groundStatus": "ปกติ",
+    "station": "หมู่ 1 ทุ่งทอง",
+    "province": "นครสวรรค์",
+    "district": "หนองบัว",
+    "subdistrict": "ทุ่งทอง",
+    "installationPlace": "ที่ทำการบ้านผู้ใหญ่บ้าน",
+    "equipmentPlace": "ที่ทำการบ้านผู้ใหญ่บ้าน",
+    "contactName": "นายสุภชัย  นิเวศสุขกำ",
+    "contactPosition": "ผู้ใหญ่บ้าน",
+    "contactVillage": "หมู่ 1 ทุ่งทอง",
+    "contactPhone": "084-5085017"
+  },
+  "photos": []
+}

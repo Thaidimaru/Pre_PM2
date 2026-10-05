@@ -188,9 +188,14 @@ export function FieldVisitView({ onNavigate }) {
         }
       });
 
-      const successText = result?.githubSynced
-        ? `บันทึกข้อมูลรหัส ${result.recordId} และบันทึกลงใน GitHub เรียบร้อยแล้ว`
-        : `บันทึกข้อมูลรหัส ${result.recordId} เรียบร้อยแล้ว`;
+      let successText = `บันทึกข้อมูลรหัส ${result.recordId} เรียบร้อยแล้ว`;
+      if (result?.githubSynced) {
+        successText += ' (ซิงค์ขึ้น GitHub ส่วนกลางสำเร็จ)';
+      } else if (result?.githubError) {
+        successText += ` (หมายเหตุ: ยังไม่ซิงค์ขึ้น GitHub: ${result.githubError})`;
+      } else {
+        successText += ' (บันทึกลงฐานข้อมูลแล้ว)';
+      }
 
       setStatusMessage({
         text: successText,

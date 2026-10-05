@@ -1,0 +1,27 @@
+{
+  "recordId": "PM-202609170726590-cf27",
+  "savedAt": "2026-09-17T07:26:59.004Z",
+  "station": "หมู่ 4 บ้านวังงิ้ว",
+  "province": "พิจิตร",
+  "permit": "อนุญาต",
+  "fields": {
+    "permit": "อนุญาต",
+    "radioStatus": "ปกติ",
+    "receiveStatus": "ปกติ",
+    "transmitStatus": "ปกติ",
+    "powerStatus": "ปกติ",
+    "batteryStatus": "ปกติ",
+    "groundStatus": "ปกติ",
+    "station": "หมู่ 4 บ้านวังงิ้ว",
+    "province": "พิจิตร",
+    "district": "ดงเจริญ",
+    "subdistrict": "วังงิ้วใต้",
+    "installationPlace": "ที่ทำการบ้านผู้ช่วยผู้ใหญ่บ้าน",
+    "equipmentPlace": "ที่ทำการบ้านผู้ช่วยผู้ใหญ่บ้าน",
+    "contactName": "นางสาวอัจราพรรณ บุญศรี",
+    "contactPosition": "ผู้ช่วยผู้ใหญ่บ้าน",
+    "contactVillage": "หมู่ 4 บ้านวังงิ้ว",
+    "contactPhone": "094-2562843"
+  },
+  "photos": []
+}

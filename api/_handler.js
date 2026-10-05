@@ -1,4 +1,4 @@
-const { handler } = require("../netlify/functions/api.js");
+const { handler } = require("./_core.js");
 
 async function getRawBody(req) {
   if (req.body) {

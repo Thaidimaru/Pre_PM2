@@ -1,12 +1,11 @@
 # NBTC Microwave — Pre-PM (Pre-Preventive Maintenance) Survey Control Room
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/deploy-status-badge?branch=main)](https://www.netlify.com/)
 ![React](https://img.shields.io/badge/Frontend-React%2018-blue?logo=react)
 ![Python](https://img.shields.io/badge/Backend-Python%203-yellow?logo=python)
-![Netlify Functions](https://img.shields.io/badge/Serverless-Netlify%20Functions-00C7B7?logo=netlify)
-![SQLite](https://img.shields.io/badge/Database-SQLite%20%2F%20Netlify%20Blobs-003B57?logo=sqlite)
+![Vercel](https://img.shields.io/badge/Serverless-Vercel-black?logo=vercel)
+![SQLite](https://img.shields.io/badge/Database-SQLite%20%2F%20Vercel%20KV-003B57?logo=sqlite)
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
-![Version](https://img.shields.io/badge/version-2.0.2-blue)
+![Version](https://img.shields.io/badge/version-2.5.0-blue)
 
 ระบบศูนย์ควบคุมและบันทึกข้อมูลการเข้าตรวจเยี่ยมเจ้าของพื้นที่สำหรับงานบำรุงรักษาเชิงป้องกันล่วงหน้า (Pre-Preventive Maintenance) สถานีวิทยุคมนาคม NBTC Microwave
 
@@ -16,7 +15,7 @@
 
 **Pre-PM Survey Control Room** ได้รับการออกแบบขึ้นมาเพื่ออำนวยความสะดวกให้แก่วิศวกรและช่างเทคนิคภาคสนามในการลงพื้นที่สำรวจสถานีวิทยุคมนาคม (NBTC Microwave) โดยครอบคลุมตั้งแต่การตรวจสอบสิทธิ์การเข้าพื้นที่ บันทึกสภาพอุปกรณ์ ตรวจสอบระบบสื่อสาร ระบบไฟฟ้า เสาอากาศ ตลอดจนการถ่ายภาพและสรุปผล เพื่อส่งข้อมูลเข้าสู่ส่วนกลางแบบเรียลไทม์
 
-ระบบรองรับทั้งการรันแบบ **Standalone / On-Premises (Python + SQLite)** และแบบ **Cloud Serverless (Netlify Functions + Netlify Blobs)** พร้อมหน้าต่างควบคุม (Control Room Dashboard) สไตล์ Glassmorphism ที่ทันสมัยและตอบสนองได้ทุกอุปกรณ์ (Desktop, Tablet, Mobile)
+ระบบรองรับทั้งการรันแบบ **Standalone / On-Premises (Python + SQLite)** และแบบ **Cloud Serverless (Vercel Functions + Vercel KV / GitHub Sync)** พร้อมหน้าต่างควบคุม (Control Room Dashboard) สไตล์ Glassmorphism ที่ทันสมัยและตอบสนองได้ทุกอุปกรณ์ (Desktop, Tablet, Mobile)
 
 ---
 
@@ -50,10 +49,10 @@
 graph TD
     Client[📱 Web Client: React SPA / Mobile & Desktop]
     
-    subgraph Netlify Serverless Cloud
-        NetlifyRouter[Netlify Edge Router / netlify.toml]
-        NetlifyFunc[Netlify Functions: api.js]
-        NetlifyBlobs[(Netlify Blobs: JSON Storage)]
+    subgraph Vercel Serverless Cloud
+        VercelRouter[Vercel Edge Router / vercel.json]
+        VercelFunc[Vercel Serverless Functions: api/*.js]
+        VercelKV[(Vercel KV / GitHub Sync)]
     end
 
     subgraph Local / Self-Hosted Server
@@ -63,9 +62,9 @@ graph TD
         ExcelExport[📊 export-surveys.ps1 -> SURVEY_DATA.xlsx]
     end
 
-    Client -->|HTTP / API| NetlifyRouter
-    NetlifyRouter -->|Rewrites / Functions| NetlifyFunc
-    NetlifyFunc <--> NetlifyBlobs
+    Client -->|HTTP / API| VercelRouter
+    VercelRouter -->|Rewrites / Functions| VercelFunc
+    VercelFunc <--> VercelKV
 
     Client -.->|Local Network / Port 8765| PyServer
     PyServer <--> SQLite
@@ -93,16 +92,13 @@ Pre-PM/
 │   ├── App.jsx                # Single Page Application Shell & Routing
 │   ├── index.css              # Tailwind CSS 4.0 Theme & Tokens
 │   ├── main.jsx               # Vite Entry Point
-│   └── version.js             # Authoritative Single Source of Truth (v2.0.0)
-├── netlify/
-│   └── functions/
-│       └── api.js             # Netlify Serverless Backend API (Blobs + XLSX)
+│   └── version.js             # Authoritative Single Source of Truth
+├── api/                       # Vercel Serverless Functions (_core.js, _handler.js, routes)
 ├── .gitignore                 # ตั้งค่า Ignore ไฟล์ชั่วคราว, dist, DB, และ node_modules
 ├── access-password.txt        # รหัสผ่านเริ่มต้นสำหรับเข้าสู่ระบบ
 ├── DATABASE.xlsx              # ฐานข้อมูลสถานีหลัก (Master Station Records)
 ├── database.py                # เซิร์ฟเวอร์ Python รองรับ Local API และเสิร์ฟ Vite Production Build
 ├── index.html                 # Vite SPA Entry HTML
-├── netlify.toml               # การตั้งค่า Build (Vite) และ Redirects สำหรับ Netlify
 ├── package.json               # Node.js dependencies & scripts (React 18.3, Vite 5.4, Tailwind 4, Radix, Lucide)
 ├── vercel.json                # การตั้งค่า Deploy สู่ Vercel
 ├── vite.config.mjs            # Vite 5.4 configuration พร้อม Tailwind 4 & API Proxies
@@ -140,15 +136,16 @@ npm run preview
 
 ---
 
-### วิธี Deploy สู่ Netlify / Vercel (Cloud Serverless)
+### วิธี Deploy สู่ Vercel (Cloud Serverless)
 
-1. เชื่อมต่อ Git Repository เข้ากับบัญชี Netlify หรือ Vercel
+1. เชื่อมต่อ Git Repository เข้ากับบัญชี Vercel
 2. ระบบจะสั่ง `npm run build` และเผยแพร่ไดเรกทอรี `dist` อัตโนมัติ:
+   - **Framework Preset**: Vite
    - **Build command**: `npm run build`
-   - **Publish directory**: `dist`
-   - **Functions directory**: `netlify/functions` (Netlify) หรือ `api/handler.js` (Vercel)
+   - **Output directory**: `dist`
 3. ตั้งค่า Environment Variable:
    - `FORM_PASSWORD`: *(กำหนดรหัสผ่านสำหรับเข้าสู่ระบบ)*
+   - `GITHUB_TOKEN`: *(Personal Access Token สำหรับซิงค์ข้อมูลลง Git อัตโนมัติ)*
 
 ## 📊 การส่งออกข้อมูลเป็น Excel (Export Data)
 

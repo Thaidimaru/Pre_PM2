@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Menu, X, Sun, Moon, GitBranch } from 'lucide-react';
+import { Calendar, Clock, Menu, X, Sun, Moon, GitBranch, AlertCircle } from 'lucide-react';
 import { APP_VERSION } from '@/version';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
@@ -8,7 +8,7 @@ import nbtcLogo from '@/assets/images/nbtc-logo-dashboard.png';
 
 export function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
   const { isDark, toggleTheme } = useTheme();
-  const [githubStatus, setGithubStatus] = useState({ configured: false, repo: 'Thaidimaru/Pre_PM2' });
+  const [githubStatus, setGithubStatus] = useState({ configured: false, valid: false, repo: 'Thaidimaru/Pre_PM2' });
   const [timeStr, setTimeStr] = useState(() =>
     new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   );
@@ -148,22 +148,38 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
             <div
               className={cn(
                 'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-                githubStatus.configured
+                githubStatus.valid
                   ? isDark
                     ? 'border-sky-500/30 bg-sky-950/40 text-sky-300'
                     : 'border-sky-300 bg-sky-50 text-sky-700 shadow-xs'
-                  : isDark
-                    ? 'border-slate-700 bg-slate-800/40 text-slate-400'
-                    : 'border-slate-300 bg-slate-100 text-slate-500'
+                  : githubStatus.configured
+                    ? isDark
+                      ? 'border-amber-500/30 bg-amber-950/40 text-amber-300'
+                      : 'border-amber-300 bg-amber-50 text-amber-700 shadow-xs'
+                    : isDark
+                      ? 'border-slate-700 bg-slate-800/40 text-slate-400'
+                      : 'border-slate-300 bg-slate-100 text-slate-500'
               )}
               title={
-                githubStatus.configured
+                githubStatus.valid
                   ? `GitHub Sync: เชื่อมต่อแล้ว (${githubStatus.repo} [${githubStatus.branch || 'main'}])`
-                  : 'GitHub Sync: รอการตั้งค่า GITHUB_TOKEN บน Netlify/เซิร์ฟเวอร์'
+                  : githubStatus.message || (githubStatus.configured ? 'GitHub Token ไม่ถูกต้อง' : 'GitHub Sync: รอการตั้งค่า GITHUB_TOKEN บน Vercel/เซิร์ฟเวอร์')
               }
             >
-              <GitBranch className={cn('h-3.5 w-3.5', githubStatus.configured ? (isDark ? 'text-sky-400' : 'text-sky-600') : 'text-slate-400')} />
-              <span>{githubStatus.configured ? 'GitHub เชื่อมต่อ' : 'GitHub Sync พร้อม'}</span>
+              {githubStatus.valid ? (
+                <GitBranch className={cn('h-3.5 w-3.5', isDark ? 'text-sky-400' : 'text-sky-600')} />
+              ) : githubStatus.configured ? (
+                <AlertCircle className={cn('h-3.5 w-3.5', isDark ? 'text-amber-400' : 'text-amber-600')} />
+              ) : (
+                <GitBranch className="h-3.5 w-3.5 text-slate-400" />
+              )}
+              <span>
+                {githubStatus.valid
+                  ? 'GitHub เชื่อมต่อ'
+                  : githubStatus.configured
+                    ? 'Token มีปัญหา'
+                    : 'รอตั้งค่า Token'}
+              </span>
             </div>
 
             <div className={cn('h-6 w-px', isDark ? 'bg-slate-700/60' : 'bg-slate-300')} />

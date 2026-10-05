@@ -1,0 +1,27 @@
+{
+  "recordId": "PM-202609170727116-0bee",
+  "savedAt": "2026-09-17T07:27:11.699Z",
+  "station": "หมู่ 17 บ้านทรัพย์เจริญ",
+  "province": "กำแพงเพชร",
+  "permit": "อนุญาต",
+  "fields": {
+    "permit": "อนุญาต",
+    "radioStatus": "ปกติ",
+    "receiveStatus": "ปกติ",
+    "transmitStatus": "ปกติ",
+    "powerStatus": "ปกติ",
+    "batteryStatus": "ปกติ",
+    "groundStatus": "ปกติ",
+    "station": "หมู่ 17 บ้านทรัพย์เจริญ",
+    "province": "กำแพงเพชร",
+    "district": "ขาณุวรลักษบุรี",
+    "subdistrict": "ปางมะค่า",
+    "installationPlace": "ศาลาประชาคม",
+    "equipmentPlace": "ศาลาประชาคม",
+    "contactName": "นางสาวนัฐกาญ สอนเครือ",
+    "contactPosition": "ผู้ใหญ่บ้าน",
+    "contactVillage": "หมู่ 17 บ้านทรัพย์เจริญ",
+    "contactPhone": "063-519-7446"
+  },
+  "photos": []
+}

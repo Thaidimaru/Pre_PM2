@@ -50,7 +50,7 @@ no API key, $0).
 - **Frontend**: Single Page Application (SPA) พัฒนาด้วย React 18, Vite 5, Tailwind CSS 4, Radix UI accessible primitives, Framer Motion, และ Lucide React
 - **Dual Backend**:
   1. **Local Standalone**: Python 3 (`database.py`) ใช้ `ThreadingHTTPServer` + SQLite (`survey.db`) รันบน Port 8765 พร้อมโฟลเดอร์เก็บภาพถ่าย `photos/`
-  2. **Cloud Serverless**: Netlify Functions (`netlify/functions/api.js`) ใช้งานร่วมกับ Netlify Blobs (`survey-control-room`) และประมวลผลไฟล์ Excel ด้วย `xlsx`
+  2. **Cloud Serverless**: Vercel Serverless Functions (`api/`) รองรับ Vercel KV / GitHub Sync และประมวลผลไฟล์ Excel ด้วย `xlsx`
 - **Master Data**: `DATABASE.xlsx` รวบรวมรายชื่อสถานีและสถานที่ติดตั้งทั้งหมด
 
 ---
@@ -73,15 +73,13 @@ Pre-PM2/
 │   ├── index.css              # Tailwind CSS 4.0 Theme & Tokens
 │   ├── main.jsx               # Vite Entry Point
 │   └── version.js             # Single Source of Truth for Application Version
-├── netlify/
-│   └── functions/
-│       └── api.js             # Netlify Functions Serverless Backend
+├── api/                       # Vercel Serverless API Functions (_core.js, _handler.js, routes)
 ├── database.py                # Standalone Python 3 + SQLite Server
 ├── export_photos.py           # Photo export utility from SQLite
 ├── DATABASE.xlsx              # Master Station Records
 ├── access-password.txt        # Default System Password
 ├── vite.config.mjs            # Vite configuration + API Proxy setup
-├── netlify.toml               # Netlify build, redirect, and security header configuration
+├── vercel.json                # Vercel build, function packaging, and rewrite configuration
 └── package.json               # Node.js dependencies and scripts
 ```
 
@@ -124,4 +122,4 @@ Pre-PM2/
   - `GET /api/database` / `GET /database`
   - `POST /api/save` / `POST /save`
   - `GET /photos/<filename>` (Local) / Blobs (Cloud)
-- **Sensitive File Protection**: ป้องกันการดาวน์โหลดโดยตรงผ่าน Web สำหรับ `access-password.txt`, `DATABASE.xlsx`, `survey.db`, `SURVEY_DATA.xlsx` ผ่าน Redirects/Rewrites 404 ใน `netlify.toml` และ Proxy rules ใน `vite.config.mjs`
+- **Sensitive File Protection**: ป้องกันการดาวน์โหลดโดยตรงผ่าน Web สำหรับ `access-password.txt`, `DATABASE.xlsx`, `survey.db`, `SURVEY_DATA.xlsx` ผ่าน Redirects/Rewrites 404 ใน `vercel.json` และ Proxy rules ใน `vite.config.mjs`
