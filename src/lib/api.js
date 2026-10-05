@@ -4,13 +4,19 @@
  */
 
 const LOCAL_SURVEYS_KEY = 'nbtc_pre_pm_saved_surveys';
+const SURVEY_RESET_DATE = '2026-10-05T00:00:00.000Z';
 
 export function getLocalSurveys() {
   try {
     const raw = localStorage.getItem(LOCAL_SURVEYS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const list = Array.isArray(parsed) ? parsed : [];
+    const filtered = list.filter((s) => s.savedAt && s.savedAt >= SURVEY_RESET_DATE);
+    if (filtered.length !== list.length) {
+      localStorage.setItem(LOCAL_SURVEYS_KEY, JSON.stringify(filtered));
+    }
+    return filtered;
   } catch (e) {
     console.warn('Failed to read local surveys from localStorage:', e);
     return [];

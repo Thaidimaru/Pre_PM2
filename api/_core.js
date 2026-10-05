@@ -18,6 +18,7 @@ const SURVEYS_DIR = path.join(ROOT, "data/surveys");
 const GITHUB_TOKEN_PATH = path.join(ROOT, "github-token.txt");
 const MAX_PHOTO_DATA_CHARS = 5600000;
 const TOKEN_TTL_MS = 8 * 60 * 60 * 1000;
+const SURVEY_RESET_DATE = "2026-10-05T00:00:00.000Z";
 
 function json(statusCode, body) {
   return {
@@ -704,7 +705,9 @@ async function getAllSurveys() {
     }
   } catch {}
 
-  return surveys.sort((a, b) => String(b.savedAt || "").localeCompare(String(a.savedAt || "")));
+  return surveys
+    .filter((s) => s && s.savedAt && s.savedAt >= SURVEY_RESET_DATE)
+    .sort((a, b) => String(b.savedAt || "").localeCompare(String(a.savedAt || "")));
 }
 
 const STATION_ALIASES = {

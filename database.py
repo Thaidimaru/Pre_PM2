@@ -45,6 +45,7 @@ class AppConfig:
     HOST = "0.0.0.0"
     PORT = int(os.environ.get("PORT", 8765))
     TOKEN_LIFETIME_HOURS = 8
+    SURVEY_RESET_DATE = "2026-10-05T00:00:00"
     XML_NAMESPACES = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 
 
@@ -384,7 +385,10 @@ class DatabaseService:
         """Compile live dashboard KPI statistics, province bars, and recent entries."""
         with cls.connect() as conn:
             stations = [dict(s) for s in conn.execute("SELECT * FROM stations").fetchall()]
-            surveys = [dict(r) for r in conn.execute("SELECT id, record_id, saved_at, fields_json FROM surveys ORDER BY saved_at DESC").fetchall()]
+            surveys = [dict(r) for r in conn.execute(
+                "SELECT id, record_id, saved_at, fields_json FROM surveys WHERE saved_at >= ? ORDER BY saved_at DESC",
+                (AppConfig.SURVEY_RESET_DATE,)
+            ).fetchall()]
             photo_rows = [dict(p) for p in conn.execute("SELECT id, survey_id, name, content_type, length(data) as size FROM survey_photos").fetchall()]
 
         # Map photos by survey_id
