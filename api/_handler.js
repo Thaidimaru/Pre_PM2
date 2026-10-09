@@ -24,10 +24,19 @@ module.exports = async function handleRoute(req, res, targetRoute) {
     const route = targetRoute || parsedUrl.searchParams.get("route") || req.query?.route || parsedUrl.pathname.split("/").filter(Boolean).pop() || "";
     const body = await getRawBody(req);
 
+    const queryStringParameters = {};
+    for (const [k, v] of parsedUrl.searchParams.entries()) {
+      queryStringParameters[k] = v;
+    }
+    if (req.query && typeof req.query === "object") {
+      Object.assign(queryStringParameters, req.query);
+    }
+
     const event = {
       httpMethod: req.method,
       path: `/${route}`,
       headers: req.headers,
+      queryStringParameters,
       body,
     };
 
@@ -39,7 +48,11 @@ module.exports = async function handleRoute(req, res, targetRoute) {
       }
     }
 
-    res.status(result.statusCode).send(result.body);
+    if (result.isBase64Encoded && typeof result.body === "string") {
+      res.status(result.statusCode).send(Buffer.from(result.body, "base64"));
+    } else {
+      res.status(result.statusCode).send(result.body);
+    }
   } catch (error) {
     console.error("Vercel API Handler Error:", error);
     res.status(500).json({ error: "server_error", message: error?.message || "Internal server error" });

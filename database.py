@@ -17,7 +17,7 @@ import secrets
 import sqlite3
 import threading
 import urllib.parse
-from urllib.parse import unquote, quote
+from urllib.parse import unquote, quote, parse_qs
 import urllib.request
 import urllib.error
 import xml.etree.ElementTree as ET
@@ -823,27 +823,42 @@ class SurveyRequestHandler(BaseHTTPRequestHandler):
             self.send_json_response(200, {"stations": stations})
             return
 
-        # 4.1 Photo Serving & Download: /api/photos/<id>, /photos/<id>, /photos/<name>
-        if parsed_path.startswith("/api/photos/") or parsed_path.startswith("/photos/"):
-            target_param = parsed_path.split("/")[-1]
+        # 4.1 Photo Serving & Download: /api/photos/<id>, /photos/<id>, /photos/<name>, /api/photo?recordId=...
+        if parsed_path.startswith("/api/photos/") or parsed_path.startswith("/photos/") or parsed_path == "/api/photo":
+            query_str = self.path.split("?", 1)[1] if "?" in self.path else ""
+            query_params = parse_qs(query_str)
+            target_param = parsed_path.split("/")[-1] if parsed_path != "/api/photo" else ""
             with DatabaseService.connect() as conn:
                 row = None
-                if target_param.isdigit():
+                if target_param and target_param.isdigit():
                     row = conn.execute(
                         "SELECT name, content_type, data FROM survey_photos WHERE id = ?",
                         (int(target_param),)
                     ).fetchone()
-                else:
+                elif target_param:
                     row = conn.execute(
                         "SELECT name, content_type, data FROM survey_photos WHERE name = ? ORDER BY id DESC LIMIT 1",
                         (target_param,)
                     ).fetchone()
+                elif parsed_path == "/api/photo":
+                    rec_id = (query_params.get("recordId") or query_params.get("id") or [""])[0].strip()
+                    try:
+                        idx_val = int((query_params.get("index") or ["0"])[0])
+                    except ValueError:
+                        idx_val = 0
+                    s_row = conn.execute("SELECT id FROM surveys WHERE record_id = ?", (rec_id,)).fetchone()
+                    if s_row:
+                        p_rows = conn.execute(
+                            "SELECT name, content_type, data FROM survey_photos WHERE survey_id = ? ORDER BY id ASC",
+                            (s_row["id"],)
+                        ).fetchall()
+                        if 0 <= idx_val < len(p_rows):
+                            row = p_rows[idx_val]
 
                 if row:
                     name = row["name"] or "photo.jpg"
                     ctype = row["content_type"] or "image/jpeg"
                     data = row["data"]
-                    query_str = self.path.split("?", 1)[1] if "?" in self.path else ""
                     is_download = "download=1" in query_str or "dl=1" in query_str
                     disp = "attachment" if is_download else "inline"
 

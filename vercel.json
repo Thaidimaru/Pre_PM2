@@ -20,6 +20,8 @@
     { "source": "/api/save", "destination": "/api/save" },
     { "source": "/api/dashboard", "destination": "/api/dashboard" },
     { "source": "/api/github-status", "destination": "/api/github-status" },
+    { "source": "/api/photo", "destination": "/api/photo" },
+    { "source": "/api/survey", "destination": "/api/survey" },
     { "source": "/login", "destination": "/api/login" },
     { "source": "/database", "destination": "/api/database" },
     { "source": "/save", "destination": "/api/save" },

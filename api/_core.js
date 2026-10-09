@@ -768,6 +768,21 @@ function findStation(stations, fields) {
   );
 }
 
+async function getSurveyById(recordId) {
+  if (!recordId) return null;
+  const safeId = String(recordId).trim().replace(/[^a-zA-Z0-9_-]/g, "");
+  const diskPath = path.join(SURVEYS_DIR, `${safeId}.json`);
+  if (fs.existsSync(diskPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(diskPath, "utf8"));
+    } catch {}
+  }
+  const mem = memoryStore.get(`${SURVEY_PREFIX}${safeId}.json`);
+  if (mem) return mem;
+  const all = await getAllSurveys();
+  return all.find((s) => s.recordId === recordId) || null;
+}
+
 async function getDashboardData() {
   const [stations, surveys] = await Promise.all([getStations(), getAllSurveys()]);
   const provinceCounts = new Map();
@@ -822,16 +837,13 @@ async function getDashboardData() {
       mergedFields.district = station.district;
     }
 
-    const photos = (survey.photos || []).map((p, idx) => {
-      const photoUrl = p.data ? `data:${p.type || "image/jpeg"};base64,${p.data}` : `/photos/${encodeURIComponent(p.name)}`;
-      return {
-        id: idx + 1,
-        name: p.name || `photo_${idx + 1}.jpg`,
-        contentType: p.type || "image/jpeg",
-        size: p.data ? Math.round((p.data.length * 3) / 4) : 0,
-        url: photoUrl,
-      };
-    });
+    const photos = (survey.photos || []).map((p, idx) => ({
+      id: idx + 1,
+      name: p.name || `photo_${idx + 1}.jpg`,
+      contentType: p.type || "image/jpeg",
+      size: p.data ? Math.round((p.data.length * 3) / 4) : (p.size || 0),
+      url: `/api/photo?recordId=${encodeURIComponent(survey.recordId)}&index=${idx}`,
+    }));
     mergedFields.photos = photos;
 
     return {
@@ -858,7 +870,10 @@ async function getDashboardData() {
 
 exports.handler = async (event) => {
   try {
-    const route = (event.path || "").split("/").filter(Boolean).pop() || "";
+    const rawPath = event.path || "";
+    const cleanPath = rawPath.replace(/\/{2,}/g, "/").replace(/\/$/, "");
+    const parts = cleanPath.split("/").filter(Boolean);
+    const route = parts.pop() || "";
 
     if (event.httpMethod === "POST" && route === "login") {
       return json(200, { token: "public", ok: true });
@@ -875,6 +890,70 @@ exports.handler = async (event) => {
     if (event.httpMethod === "GET" && route === "github-status") {
       const status = await checkGitHubAuth();
       return json(200, status);
+    }
+
+    if (event.httpMethod === "GET" && (route === "photo" || route === "photos" || cleanPath.includes("/photos/"))) {
+      const q = event.queryStringParameters || {};
+      const recordId = q.recordId || q.id || "";
+      const index = parseInt(q.index || "0", 10);
+      let photo = null;
+
+      if (recordId) {
+        const survey = await getSurveyById(recordId);
+        if (survey && Array.isArray(survey.photos)) {
+          if (q.name) {
+            photo = survey.photos.find((p) => p.name === q.name) || survey.photos[index];
+          } else {
+            photo = survey.photos[index];
+          }
+        }
+      } else {
+        const photoName = decodeURIComponent(parts[parts.length - 1] || "");
+        if (photoName) {
+          const all = await getAllSurveys();
+          for (const s of all) {
+            if (Array.isArray(s.photos)) {
+              const found = s.photos.find((p) => p.name === photoName);
+              if (found) {
+                photo = found;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      if (!photo) {
+        return {
+          statusCode: 404,
+          headers: { "Content-Type": "text/plain" },
+          body: "Photo not found",
+        };
+      }
+      const contentType = photo.type || "image/jpeg";
+      const base64Data = photo.data || "";
+      const isDownload = q.download === "1" || q.dl === "1";
+      const fileName = encodeURIComponent(photo.name || `photo_${index + 1}.jpg`);
+      return {
+        statusCode: 200,
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=86400, s-maxage=86400",
+          "Content-Disposition": isDownload ? `attachment; filename*=UTF-8''${fileName}` : "inline",
+        },
+        body: base64Data,
+        isBase64Encoded: true,
+      };
+    }
+
+    if (event.httpMethod === "GET" && route === "survey") {
+      const q = event.queryStringParameters || {};
+      const recordId = q.recordId || q.id || "";
+      const survey = await getSurveyById(recordId);
+      if (!survey) {
+        return json(404, { error: "not_found", message: "Survey not found" });
+      }
+      return json(200, survey);
     }
 
     if (event.httpMethod === "POST" && route === "save") {
