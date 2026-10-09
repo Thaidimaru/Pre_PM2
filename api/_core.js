@@ -5,7 +5,11 @@ const crypto = require("node:crypto");
 const os = require("node:os");
 const XLSX = require("xlsx");
 
-const ROOT = path.join(__dirname, "..");
+const ROOT = fs.existsSync(path.join(process.cwd(), "DATABASE.xlsx"))
+  ? process.cwd()
+  : (fs.existsSync(path.join(__dirname, "..", "DATABASE.xlsx"))
+    ? path.join(__dirname, "..")
+    : __dirname);
 const PASSWORD_PATH = path.join(ROOT, "access-password.txt");
 const DATABASE_XLSX = path.join(ROOT, "DATABASE.xlsx");
 const AGWBS_XLSX = path.join(ROOT, "AGWBS.xlsx");
@@ -636,7 +640,21 @@ async function getAllSurveys() {
   const surveys = [];
   const seenIds = new Set();
 
-  // 0. GitHub Repository Surveys (Thaidimaru/Pre_PM2)
+  // 0. Local static surveys & data/surveys/*.json (bundled on disk)
+  try {
+    const diskSurveys = loadLocalSurveys();
+    for (const s of diskSurveys) {
+      if (s && s.recordId && !seenIds.has(s.recordId)) {
+        seenIds.add(s.recordId);
+        surveys.push(s);
+        memoryStore.set(`${SURVEY_PREFIX}${s.recordId}.json`, s);
+      }
+    }
+  } catch (e) {
+    console.warn("loadLocalSurveys error:", e);
+  }
+
+  // 1. GitHub Repository Surveys (Thaidimaru/Pre_PM2)
   try {
     const ghSurveys = await fetchSurveysFromGitHub();
     for (const s of ghSurveys) {

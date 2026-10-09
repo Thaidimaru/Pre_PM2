@@ -8,55 +8,61 @@
 
 [[redirects]]
   from = "/api/login"
-  to = "/.netlify/functions/api/login"
+  to = "/.netlify/functions/survey-api/login"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/database"
-  to = "/.netlify/functions/api/database"
+  to = "/.netlify/functions/survey-api/database"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/save"
-  to = "/.netlify/functions/api/save"
+  to = "/.netlify/functions/survey-api/save"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/dashboard"
-  to = "/.netlify/functions/api/dashboard"
+  to = "/.netlify/functions/survey-api/dashboard"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/github-status"
-  to = "/.netlify/functions/api/github-status"
+  to = "/.netlify/functions/survey-api/github-status"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/survey-api/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/login"
-  to = "/.netlify/functions/api/login"
+  to = "/.netlify/functions/survey-api/login"
   status = 200
   force = true
 
 [[redirects]]
   from = "/database"
-  to = "/.netlify/functions/api/database"
+  to = "/.netlify/functions/survey-api/database"
   status = 200
   force = true
 
 [[redirects]]
   from = "/save"
-  to = "/.netlify/functions/api/save"
+  to = "/.netlify/functions/survey-api/save"
   status = 200
   force = true
 
 [[redirects]]
   from = "/github-status"
-  to = "/.netlify/functions/api/github-status"
+  to = "/.netlify/functions/survey-api/github-status"
   status = 200
   force = true
 
