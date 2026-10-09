@@ -3,6 +3,7 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- ./src ./public ./api ./package.json ./vite.config.mjs ./vercel.json ./index.html",
   "functions": {
     "api/*.js": {
       "includeFiles": "{DATABASE.xlsx,AGWBS.xlsx,access-password.txt,data/seed_surveys.json,survey-*.json,data/surveys/**}"

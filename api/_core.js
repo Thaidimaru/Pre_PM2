@@ -804,14 +804,16 @@ async function getDashboardData() {
       mergedFields.district = station.district;
     }
 
-    const photos = (survey.photos || []).map((p, idx) => ({
-      id: idx + 1,
-      name: p.name || `photo_${idx + 1}.jpg`,
-      contentType: p.type || "image/jpeg",
-      size: p.data ? Math.round((p.data.length * 3) / 4) : 0,
-      url: p.data ? `data:${p.type || "image/jpeg"};base64,${p.data}` : `/photos/${encodeURIComponent(p.name)}`,
-      dataUrl: p.data ? `data:${p.type || "image/jpeg"};base64,${p.data}` : null,
-    }));
+    const photos = (survey.photos || []).map((p, idx) => {
+      const photoUrl = p.data ? `data:${p.type || "image/jpeg"};base64,${p.data}` : `/photos/${encodeURIComponent(p.name)}`;
+      return {
+        id: idx + 1,
+        name: p.name || `photo_${idx + 1}.jpg`,
+        contentType: p.type || "image/jpeg",
+        size: p.data ? Math.round((p.data.length * 3) / 4) : 0,
+        url: photoUrl,
+      };
+    });
     mergedFields.photos = photos;
 
     return {

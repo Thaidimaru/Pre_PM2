@@ -119,27 +119,67 @@ export function FieldVisitView({ onNavigate }) {
     }
   }, [activeStation]);
 
-  // Handle photo selection & base64 conversion
-  const handlePhotoSelect = (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-
-    files.forEach((file) => {
+  // Compress uploaded photo to preserve bandwidth and quota
+  const compressImageFile = (file, maxDimension = 1280, quality = 0.75) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        setSelectedPhotos((prev) => [
-          ...prev,
-          {
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          const base64Data = dataUrl.split(',')[1];
+          resolve({
+            name: file.name.replace(/\.[^.]+$/, '') + '.jpg',
+            size: Math.round((base64Data.length * 3) / 4),
+            type: 'image/jpeg',
+            previewUrl: dataUrl,
+            base64Data
+          });
+        };
+        img.onerror = () => {
+          const base64Data = (e.target.result || '').split(',')[1] || '';
+          resolve({
             name: file.name,
             size: file.size,
             type: file.type || 'image/jpeg',
-            previewUrl: reader.result,
-            base64Data: reader.result.split(',')[1]
-          }
-        ]);
+            previewUrl: e.target.result,
+            base64Data
+          });
+        };
+        img.src = e.target.result;
       };
+      reader.onerror = () => resolve(null);
       reader.readAsDataURL(file);
     });
+  };
+
+  // Handle photo selection & base64 conversion with auto-compression
+  const handlePhotoSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    for (const file of files) {
+      const photoObj = await compressImageFile(file);
+      if (photoObj) {
+        setSelectedPhotos((prev) => [...prev, photoObj]);
+      }
+    }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
