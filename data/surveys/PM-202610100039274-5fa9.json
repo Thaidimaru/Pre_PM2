@@ -1,0 +1,33 @@
+{
+  "recordId": "PM-202610100039274-5fa9",
+  "savedAt": "2026-10-10T00:39:27.528Z",
+  "station": "หมู่ 14 ดอนสว่าง",
+  "province": "นครราชสีมา",
+  "permit": "อนุญาต",
+  "fields": {
+    "permit": "อนุญาต",
+    "radioStatus": "ปกติ",
+    "receiveStatus": "ปกติ",
+    "transmitStatus": "ปกติ",
+    "powerStatus": "ปกติ",
+    "batteryStatus": "ปกติ",
+    "groundStatus": "ปกติ",
+    "station": "หมู่ 14 ดอนสว่าง",
+    "province": "นครราชสีมา",
+    "district": "ปากช่อง",
+    "subdistrict": "วังกะทะ",
+    "installationPlace": "ที่ทำการบ้านผู้ใหญ่บ้าน",
+    "equipmentPlace": "ที่ทำการบ้านผู้ใหญ่บ้าน",
+    "contactName": "นายศีลธรรม  ทองราช",
+    "contactPosition": "ผู้ใหญ่บ้าน",
+    "contactVillage": "หมู่ 14 ดอนสว่าง",
+    "contactPhone": "063-039-8345",
+    "siteCondition": "ปกติ",
+    "antennaCondition": "ปกติ",
+    "workObstacle": "ไม่มี",
+    "summary": "-",
+    "informantName": "นายศีลธรรม  ทองราช",
+    "operatorName": "นายอุทัย หนาดสำโรง"
+  },
+  "photos": []
+}
