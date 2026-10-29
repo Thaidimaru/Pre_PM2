@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.4] - 2026-10-29
+
+### Fixed
+- **แก้ไข Runtime Crash "ReferenceError: isLockedRound is not defined" ใน Survey Preview Modal และ Survey Drill-Down Modal**:
+  - **แก้ไขขอบเขตตัวแปร (Scope Resolution) ของ `isLockedRound` ใน `SurveyPreviewModal.jsx`**:
+    - ประกาศตัวแปร `roundNum` และ `isLockedRound` ภายในขอบเขตฟังก์ชันคอมโพเนนต์อย่างถูกต้อง โดยประเมินผลผ่าน `isRoundClosed(roundNum)` พร้อมรองรับ Prop `isLockedRound` ที่ส่งมาจากคอมโพเนนต์แม่
+    - เพิ่ม Safe Fallback ป้องกันข้อผิดพลาดกรณีข้อมูลรอบหรือสถานะการล็อกยังโหลดไม่เสร็จหรือเป็น `undefined` โดยให้คืนค่า `false` โดยอัตโนมัติ ไม่โยน Uncaught ReferenceError
+  - **ปรับปรุง `SurveyDrillDownModal.jsx`**:
+    - นำเข้าฟังก์ชัน `isRoundClosed` จาก `@/lib/api` และสร้างฟังก์ชันช่วยเหลือ `isLockedRound(roundNumber)` ที่มี Safe Fallback ในตัว
+    - ส่งค่า `isLockedRound` เข้าไปยัง `<SurveyPreviewModal />` ขณะเปิดดูรายละเอียดผลการสำรวจจากหน้าต่างเจาะลึกสถิติ
+  - **ปรับปรุง `RecentSurveys.jsx`**:
+    - ส่งค่า `isLockedRound` เข้าไปยัง `<SurveyPreviewModal />` อย่างชัดเจนและรัดกุม ป้องกันไม่ให้เกิด ErrorBoundary Break ในทุกจุดเรียกใช้งาน
+
 ## [2.17.3] - 2026-10-29
 
 ### Fixed

@@ -57,6 +57,7 @@ export function SurveyPreviewModal({
   onEdit,
   onDelete,
   onStartSurvey,
+  isLockedRound: propIsLockedRound,
 }) {
   const { isDark } = useTheme();
   const [copied, setCopied] = useState(false);
@@ -70,9 +71,15 @@ export function SurveyPreviewModal({
     return () => window.removeEventListener('nbtc-rounds-updated', handleRoundsUpdated);
   }, []);
 
-  const rawFields = surveyData.fields || {};
-  const fields = { ...surveyData, ...rawFields };
-  const recordId = surveyData.recordId || fields.recordId || fields.record_id || '-';
+  const rawFields = surveyData?.fields || {};
+  const fields = { ...(surveyData || {}), ...rawFields };
+  const recordId = surveyData?.recordId || fields.recordId || fields.record_id || '-';
+
+  // Round number and safe round locking check
+  const roundNum = Number(surveyData?.round_number || fields.round_number || 1) || 1;
+  const isLockedRound = typeof propIsLockedRound === 'boolean'
+    ? propIsLockedRound
+    : Boolean(typeof isRoundClosed === 'function' ? isRoundClosed(roundNum) : false);
 
   // Determine if this is an unvisited station record
   const isUnvisited =

@@ -1888,6 +1888,7 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
           isOpen={Boolean(selectedPreview)}
           onClose={() => setSelectedPreview(null)}
           surveyData={selectedPreview || {}}
+          isLockedRound={Boolean(isRoundClosed(selectedPreview?.round_number || selectedPreview?.fields?.round_number || 1))}
           onStartSurvey={(item) => {
             setSelectedPreview(null);
             if (onNavigate) onNavigate('field', item);

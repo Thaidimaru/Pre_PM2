@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
-import { fetchStations, normalizeStationKey, STATION_ALIASES } from '@/lib/api';
+import { fetchStations, normalizeStationKey, STATION_ALIASES, isRoundClosed } from '@/lib/api';
 import { SurveyPreviewModal } from '@/components/dashboard/SurveyPreviewModal';
 
 const CATEGORY_CONFIG = {
@@ -91,6 +91,15 @@ export function SurveyDrillDownModal({
   // Preview Survey Modal State
   const [previewSurvey, setPreviewSurvey] = useState(null);
   const [loadingRowId, setLoadingRowId] = useState(null);
+
+  // Safe helper to evaluate if an inspection round is locked
+  const isLockedRound = (roundNumber) => {
+    try {
+      return Boolean(typeof isRoundClosed === 'function' && isRoundClosed(roundNumber));
+    } catch {
+      return false;
+    }
+  };
 
   // Master Station Directory (Loaded from cache or API)
   const [masterStations, setMasterStations] = useState(() => {
@@ -1147,6 +1156,7 @@ export function SurveyDrillDownModal({
           isOpen={Boolean(previewSurvey)}
           onClose={() => setPreviewSurvey(null)}
           surveyData={previewSurvey}
+          isLockedRound={isLockedRound(previewSurvey?.round_number || previewSurvey?.fields?.round_number || 1)}
           onStartSurvey={(st) => {
             setPreviewSurvey(null);
             onClose();
