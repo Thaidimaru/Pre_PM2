@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Layers, CheckCircle2, Clock, AlertCircle, ChevronRight, BarChart3, Lock } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { useTheme } from '@/context/ThemeContext';
@@ -12,6 +12,14 @@ export function MultiRoundOverview({
   onSelectRound,
 }) {
   const { isDark } = useTheme();
+
+  // Subscribe to real-time round locking updates
+  const [roundsVersion, setRoundsVersion] = useState(0);
+  useEffect(() => {
+    const handleRoundsUpdated = () => setRoundsVersion((v) => v + 1);
+    window.addEventListener('nbtc-rounds-updated', handleRoundsUpdated);
+    return () => window.removeEventListener('nbtc-rounds-updated', handleRoundsUpdated);
+  }, []);
 
   // Compute statistics for all 18 rounds (Rounds 1 - 18)
   const roundMetrics = useMemo(() => {
@@ -45,7 +53,7 @@ export function MultiRoundOverview({
         isLocked,
       };
     });
-  }, [surveys, totalStations]);
+  }, [surveys, totalStations, roundsVersion]);
 
   // Aggregate overall status
   const completedRoundsCount = roundMetrics.filter((r) => r.isComplete).length;

@@ -39,6 +39,7 @@ console.log('  ✓ database.py SQLite table, routes, & 403 Forbidden guards veri
 console.log('\n4. Checking Client API Layer (src/lib/api.js)...');
 const apiJs = fs.readFileSync('src/lib/api.js', 'utf8');
 assert(apiJs.includes('ROUNDS_STATUS_CACHE_KEY'), 'api.js must export ROUNDS_STATUS_CACHE_KEY');
+assert(apiJs.includes('LOCKED_ROUNDS_KEY'), 'api.js must export LOCKED_ROUNDS_KEY');
 assert(apiJs.includes('function getCachedRoundStatuses'), 'api.js must export getCachedRoundStatuses');
 assert(apiJs.includes('function setCachedRoundStatuses'), 'api.js must export setCachedRoundStatuses');
 assert(apiJs.includes('function isRoundClosed'), 'api.js must export isRoundClosed');
@@ -56,6 +57,7 @@ assert(settingsModal.includes('สถานะและล็อกรอบต�
 assert(settingsModal.includes('canLock: completed >= totalStations'), 'SettingsModal must enforce completion threshold (197 stations) for locking');
 assert(settingsModal.includes('updateRoundLockStatus'), 'SettingsModal must call updateRoundLockStatus');
 assert(settingsModal.includes('ปิดรอบ (Lock Round)'), 'SettingsModal must render Lock Round action button');
+assert(settingsModal.includes('ปิดรอบแล้ว (Locked)'), 'SettingsModal must render disabled Locked button');
 assert(settingsModal.includes('ปลดล็อกรอบ (Re-open)'), 'SettingsModal must render Re-open action button for closed rounds');
 console.log('  ✓ SettingsModal.jsx round management, 197-station completion gate, and lock/unlock verified');
 
@@ -76,11 +78,13 @@ assert(recentSurveys.includes('const isLocked = isRoundClosed(itemRound)'), 'Rec
 assert(recentSurveys.includes('disabled={isLocked}'), 'RecentSurveys must disable edit/delete for locked items');
 assert(recentSurveys.includes('checked={isSelected && !isLocked}'), 'RecentSurveys must prevent checkbox selection for locked items');
 assert(recentSurveys.includes('<span>Locked</span>'), 'RecentSurveys must display Locked badge');
+assert(recentSurveys.includes('nbtc-rounds-updated'), 'RecentSurveys must subscribe to nbtc-rounds-updated');
 
 const previewModal = fs.readFileSync('src/components/dashboard/SurveyPreviewModal.jsx', 'utf8');
 assert(previewModal.includes('isLockedRound'), 'SurveyPreviewModal must determine isLockedRound');
 assert(previewModal.includes('disabled={isLockedRound}'), 'SurveyPreviewModal must disable edit/delete buttons when locked');
 assert(previewModal.includes('Closed & Locked — Read-Only'), 'SurveyPreviewModal must show read-only banner when locked');
+assert(previewModal.includes('nbtc-rounds-updated'), 'SurveyPreviewModal must subscribe to nbtc-rounds-updated');
 console.log('  ✓ RecentSurveys.jsx and SurveyPreviewModal.jsx read-only lock protection verified');
 
 // 8. Multi-Round Overview
@@ -89,6 +93,7 @@ const multiRound = fs.readFileSync('src/components/dashboard/MultiRoundOverview.
 assert(multiRound.includes('isRoundClosed'), 'MultiRoundOverview must import isRoundClosed');
 assert(multiRound.includes('rm.isLocked ? ('), 'MultiRoundOverview must show Lock icon for locked rounds');
 assert(multiRound.includes('ปิดรอบแล้ว (Read-Only)'), 'MultiRoundOverview must show text for locked rounds');
+assert(multiRound.includes('nbtc-rounds-updated'), 'MultiRoundOverview must subscribe to nbtc-rounds-updated');
 console.log('  ✓ MultiRoundOverview.jsx lock badges and visual indicators verified');
 
 // 9. Version and Changelog
@@ -97,10 +102,10 @@ const versionJs = fs.readFileSync('src/version.js', 'utf8');
 const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
 
-assert(versionJs.includes("APP_VERSION = '2.17.1'"), 'src/version.js must be 2.17.1');
-assert(packageJson.version === '2.17.1', 'package.json version must be 2.17.1');
-assert(changelog.includes('## [2.17.0] - 2026-10-29'), 'CHANGELOG.md must document [2.17.0]');
-console.log('  ✓ Version 2.17.1 synchronized in src/version.js, package.json, and CHANGELOG.md');
+assert(versionJs.includes("APP_VERSION = '2.17.2'"), 'src/version.js must be 2.17.2');
+assert(packageJson.version === '2.17.2', 'package.json version must be 2.17.2');
+assert(changelog.includes('## [2.17.2] - 2026-10-29'), 'CHANGELOG.md must document [2.17.2]');
+console.log('  ✓ Version 2.17.2 synchronized in src/version.js, package.json, and CHANGELOG.md');
 
 console.log('\n======================================================');
 console.log('🎉 ALL ROUND LOCKING & PROTECTION VERIFICATION TESTS PASSED!');

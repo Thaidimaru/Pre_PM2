@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.2] - 2026-10-29
+
+### Fixed
+- **แก้ไขปุ่ม "ปิดรอบ (Lock Round)" ใน System Settings พร้อมคงสถานะล็อกและอัปเดต UI ทันที (Round Lock Mutation Persistence & Instant UI Synchronization)**:
+  - **แก้ไขตัวจัดการ Mutation สำหรับล็อกรอบ (`updateRoundLockStatus` ใน `src/lib/api.js`)**:
+    - ปรับปรุง Payload ให้ส่ง `{ round: rn, round_number: rn, status: 'closed', closed_at, closed_by }` ให้ตรงตามสัญญา API ครบถ้วน
+    - ตรวจสอบคำตอบ `200 OK` และ `ok: true` จากเซิร์ฟเวอร์ก่อนยืนยันการทำรายการ
+    - เพิ่มคีย์จัดเก็บพิเศษ `nbtc_locked_rounds_override` ป้องกันไม่ให้การดึง Static Snapshot หรือ CDN แคชที่ยังเป็นค่าเปิด (`status: 'open'`) ย้อนกลับมาเขียนทับสถานะที่ผู้ใช้เพิ่งสั่งปิดรอบ
+    - ปรับปรุง `mergeDashboardWithLocal` ไม่ให้เขียนทับสถานะรอบที่ปิดแล้วด้วยข้อมูล Snapshot ที่เก่ากว่า
+  - **ปรับปรุง UI และปุ่มสถานะทันทีใน Settings Modal (`src/components/settings/SettingsModal.jsx`)**:
+    - เพิ่ม Optimistic UI Update อัปเดต `roundsSummary` ทันทีที่ผู้ใช้คลิกปุ่ม ทำให้ป้ายสถานะเปลี่ยนเป็น "ปิดรอบแล้ว (Read-Only)" พร้อมไอคอนแม่กุญแจทันทีโดยไม่ต้องรอโหลดข้อมูลใหม่
+    - เปลี่ยนปุ่มสีแดง "ปิดรอบ (Lock Round)" เป็นปุ่มปิดการใช้งาน **"ปิดรอบแล้ว (Locked)"** พร้อมไอคอน `Lock` เพื่อป้องกันการคลิกซ้ำซ้อน และคงปุ่มรอง "ปลดล็อกรอบ (Re-open)" ไว้สำหรับกรณีจำเป็น
+    - อัปเดตตัวเลขนับสรุปด้านบนแบบไดนามิกทันที (เช่น ปิดรอบแล้ว: 1 รอบ, เปิดอยู่: 17 รอบ)
+  - **ซิงโครไนซ์สถานะแบบเรียลไทม์ทั่วทั้งแอปพลิเคชัน**:
+    - ปรับปรุงคอมโพเนนต์ `RecentSurveys.jsx`, `SurveyPreviewModal.jsx`, `MultiRoundOverview.jsx`, และ `DashboardView.jsx` ให้ตอบสนองต่อ Event `nbtc-rounds-updated` ทันที
+    - ใน `FieldVisitView.jsx`: รอบที่ถูกปิดจะถูกคัดออกจาก Dropdown "รอบการตรวจเยี่ยม (Inspection Round)" ทันที และแบบฟอร์มจะเลือกไปยังรอบแรกที่ยังเปิดอยู่โดยอัตโนมัติโดยไม่ต้องรีเฟรชเบราว์เซอร์
+    - ใน `RecentSurveys.jsx` และ `SurveyPreviewModal.jsx`: รายการตรวจเยี่ยมทั้งหมดของรอบที่ปิดจะถูกล็อกเป็น Read-Only ทันที ปิดการใช้งานปุ่มแก้ไขและปุ่มลบอย่างสมบูรณ์
+  - **เสริมการรับรองความถูกต้องบน Cloudflare Worker Edge API และ Local Server**:
+    - ใน `worker/index.js`: เพิ่มกลไก `ensureSchema(db)` อัตโนมัติเมื่อตรวจพบ `no such table: inspection_rounds` บน Cloudflare D1 ป้องกันปัญหาตารางยังไม่ถูกสร้างบน Remote Database และส่งออกทั้ง `round` และ `round_number`
+    - ใน `database.py`: รองรับทั้ง `round` และ `round_number` ใน Payload และ Response ของ `/api/rounds/lock`
+
 ## [2.17.1] - 2026-10-29
 
 ### Fixed

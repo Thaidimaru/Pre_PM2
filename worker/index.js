@@ -424,6 +424,21 @@ export default {
               }
             } catch (e) {
               console.warn('[rounds] D1 rounds query notice:', e.message);
+              if (e.message?.includes('no such table')) {
+                await ensureSchema(db);
+                try {
+                  const { results = [] } = await db.prepare(
+                    'SELECT round_number, status, closed_at, closed_by FROM inspection_rounds ORDER BY round_number ASC'
+                  ).all();
+                  if (results && results.length > 0) {
+                    const map = new Map(results.map((r) => [Number(r.round_number), r]));
+                    rounds = Array.from({ length: 18 }, (_, i) => {
+                      const rn = i + 1;
+                      return map.get(rn) || { round_number: rn, status: 'open' };
+                    });
+                  }
+                } catch (retryErr) {}
+              }
             }
           }
           return jsonResponse({ ok: true, rounds });
@@ -440,6 +455,7 @@ export default {
             const now = new Date().toISOString();
 
             if (hasD1) {
+              let d1WriteSuccess = false;
               try {
                 await db.prepare(
                   `INSERT INTO inspection_rounds (round_number, status, closed_at)
@@ -448,17 +464,36 @@ export default {
                      status = excluded.status,
                      closed_at = excluded.closed_at`
                 ).bind(roundNum, newStatus, newStatus === 'closed' ? now : null).run();
-
-                await db.prepare(
-                  "INSERT OR REPLACE INTO meta_sync (key, last_change_timestamp, change_counter) VALUES ('surveys', ?, COALESCE((SELECT change_counter + 1 FROM meta_sync WHERE key = 'surveys'), 1))"
-                ).bind(now).run();
+                d1WriteSuccess = true;
               } catch (dbErr) {
                 console.warn('[rounds/lock] D1 write notice:', dbErr.message);
+                if (dbErr.message?.includes('no such table')) {
+                  await ensureSchema(db);
+                  try {
+                    await db.prepare(
+                      `INSERT INTO inspection_rounds (round_number, status, closed_at)
+                       VALUES (?, ?, ?)
+                       ON CONFLICT(round_number) DO UPDATE SET
+                         status = excluded.status,
+                         closed_at = excluded.closed_at`
+                    ).bind(roundNum, newStatus, newStatus === 'closed' ? now : null).run();
+                    d1WriteSuccess = true;
+                  } catch (retryErr) {
+                    console.error('[rounds/lock] D1 write retry error:', retryErr);
+                  }
+                }
+              }
+
+              if (d1WriteSuccess) {
+                await db.prepare(
+                  "INSERT OR REPLACE INTO meta_sync (key, last_change_timestamp, change_counter) VALUES ('surveys', ?, COALESCE((SELECT change_counter + 1 FROM meta_sync WHERE key = 'surveys'), 1))"
+                ).bind(now).run().catch(() => {});
               }
             }
 
             return jsonResponse({
               ok: true,
+              round: roundNum,
               round_number: roundNum,
               status: newStatus,
               closed_at: newStatus === 'closed' ? now : null,
@@ -563,6 +598,7 @@ export default {
               const inRound = recent.filter((r) => (r.round_number || 1) === rNum);
               return {
                 round: rNum,
+                round_number: rNum,
                 status: roundLocks.get(rNum) || 'open',
                 completed: inRound.length,
                 total: totalStations,

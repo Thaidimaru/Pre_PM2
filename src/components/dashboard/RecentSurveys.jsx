@@ -74,6 +74,14 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
   const [isSortOpen, setIsSortOpen] = useState(false);
   const sortDropdownRef = useRef(null);
 
+  // Subscribe to real-time round locking updates so row lock states refresh immediately
+  const [, setRoundsVersion] = useState(0);
+  useEffect(() => {
+    const handleRoundsUpdated = () => setRoundsVersion((v) => v + 1);
+    window.addEventListener('nbtc-rounds-updated', handleRoundsUpdated);
+    return () => window.removeEventListener('nbtc-rounds-updated', handleRoundsUpdated);
+  }, []);
+
   // Active filter count
   const activeFilterCount = useMemo(() => {
     let count = 0;

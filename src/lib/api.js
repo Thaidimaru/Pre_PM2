@@ -678,13 +678,14 @@ function mergeDashboardWithLocal(serverData, localSurveys, currentGhIds = null) 
 
   if (Array.isArray(base.roundsSummary)) {
     const cachedRounds = getCachedRoundStatuses();
-    const serverStatuses = new Map(base.roundsSummary.map((r) => [Number(r.round_number), r.status]));
+    const serverStatuses = new Map(base.roundsSummary.map((r) => [Number(r.round_number || r.round), r.status]));
     let changed = false;
     const mergedRounds = cachedRounds.map((cr) => {
       const serverStatus = serverStatuses.get(Number(cr.round_number));
-      if (serverStatus && serverStatus !== cr.status) {
+      // Only adopt serverStatus if server explicitly closed it, or if local is not already closed
+      if (serverStatus === 'closed' && cr.status !== 'closed') {
         changed = true;
-        return { ...cr, status: serverStatus };
+        return { ...cr, status: 'closed' };
       }
       return cr;
     });
@@ -831,25 +832,46 @@ export function setCachedDashboardData(data) {
 
 
 export const ROUNDS_STATUS_CACHE_KEY = 'nbtc_inspection_rounds_status';
+export const LOCKED_ROUNDS_KEY = 'nbtc_locked_rounds_override';
 
 export function getCachedRoundStatuses() {
   if (typeof window === 'undefined') {
     return Array.from({ length: 18 }, (_, i) => ({ round_number: i + 1, status: 'open' }));
   }
+  let rounds = null;
   try {
     const raw = localStorage.getItem(ROUNDS_STATUS_CACHE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const map = new Map(parsed.map((r) => [Number(r.round_number), r]));
-        return Array.from({ length: 18 }, (_, i) => {
+        const map = new Map(parsed.map((r) => [Number(r.round_number || r.round), r]));
+        rounds = Array.from({ length: 18 }, (_, i) => {
           const rn = i + 1;
           return map.get(rn) || { round_number: rn, status: 'open' };
         });
       }
     }
   } catch (e) {}
-  return Array.from({ length: 18 }, (_, i) => ({ round_number: i + 1, status: 'open' }));
+
+  if (!rounds) {
+    rounds = Array.from({ length: 18 }, (_, i) => ({ round_number: i + 1, status: 'open' }));
+  }
+
+  // Overlay dedicated local lock overrides so stale snapshots never revert user intent
+  try {
+    const override = JSON.parse(localStorage.getItem(LOCKED_ROUNDS_KEY) || '{}');
+    if (override && typeof override === 'object') {
+      rounds = rounds.map((r) => {
+        const rn = Number(r.round_number);
+        if (override[rn]?.status === 'closed') {
+          return { ...r, status: 'closed', closed_at: override[rn].closed_at };
+        }
+        return r;
+      });
+    }
+  } catch (e) {}
+
+  return rounds;
 }
 
 export function setCachedRoundStatuses(rounds) {
@@ -865,8 +887,12 @@ export function setCachedRoundStatuses(rounds) {
 
 export function isRoundClosed(roundNumber) {
   const rn = Number(roundNumber || 1);
+  try {
+    const override = JSON.parse(localStorage.getItem(LOCKED_ROUNDS_KEY) || '{}');
+    if (override && override[rn]?.status === 'closed') return true;
+  } catch (e) {}
   const rounds = getCachedRoundStatuses();
-  const match = rounds.find((r) => Number(r.round_number) === rn);
+  const match = rounds.find((r) => Number(r.round_number || r.round) === rn);
   return match?.status === 'closed';
 }
 
@@ -913,7 +939,18 @@ export async function updateRoundLockStatus(roundNumber, status, closedBy = null
   const newStatus = status === 'closed' ? 'closed' : 'open';
   const now = new Date().toISOString();
 
-  // Optimistically update local cache
+  // 1. Immediately persist to dedicated override storage
+  try {
+    const override = JSON.parse(localStorage.getItem(LOCKED_ROUNDS_KEY) || '{}');
+    if (newStatus === 'closed') {
+      override[rn] = { status: 'closed', closed_at: now, closed_by: closedBy };
+    } else {
+      delete override[rn];
+    }
+    localStorage.setItem(LOCKED_ROUNDS_KEY, JSON.stringify(override));
+  } catch (e) {}
+
+  // 2. Optimistically update local cache
   const cached = getCachedRoundStatuses();
   const updatedRounds = cached.map((r) => {
     if (Number(r.round_number) === rn) {
@@ -928,11 +965,21 @@ export async function updateRoundLockStatus(roundNumber, status, closedBy = null
   });
   setCachedRoundStatuses(updatedRounds);
 
-  // Sync to Cloudflare Worker or Local server
-  let remoteSuccess = false;
-  const workerUrl = getCloudWorkerUrl();
-  const payload = { round_number: rn, status: newStatus, closed_by: closedBy };
+  // 3. Prepare payload matching exact backend contract
+  const payload = {
+    round: rn,
+    round_number: rn,
+    status: newStatus,
+    closed_at: newStatus === 'closed' ? now : null,
+    closed_by: closedBy,
+  };
 
+  let remoteSuccess = false;
+  let backendConfirmed = false;
+  let responseData = null;
+
+  // 4. Send API mutation to Cloudflare Worker (D1)
+  const workerUrl = getCloudWorkerUrl();
   if (workerUrl) {
     try {
       const res = await fetch(`${workerUrl}/api/rounds/lock`, {
@@ -940,23 +987,53 @@ export async function updateRoundLockStatus(roundNumber, status, closedBy = null
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (res.ok) remoteSuccess = true;
-    } catch (e) {}
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data && data.ok) {
+          remoteSuccess = true;
+          backendConfirmed = true;
+          responseData = data;
+        }
+      }
+    } catch (e) {
+      console.warn('[updateRoundLockStatus] Cloudflare Worker lock mutation notice:', e);
+    }
   }
 
-  if (!remoteSuccess && !isStaticHost()) {
+  // 5. Send API mutation to Local Server
+  if (!backendConfirmed && !isStaticHost()) {
     try {
       const res = await fetch(`/api/rounds/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (res.ok) remoteSuccess = true;
-    } catch (e) {}
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data && data.ok) {
+          remoteSuccess = true;
+          backendConfirmed = true;
+          responseData = data;
+        }
+      }
+    } catch (e) {
+      console.warn('[updateRoundLockStatus] Local server lock mutation notice:', e);
+    }
   }
 
-  notifySurveysUpdated({ action: 'round_lock', roundNumber: rn, status: newStatus });
-  return { ok: true, round_number: rn, status: newStatus, remoteSuccess };
+  // 6. Universal broadcast across tabs and components
+  window.dispatchEvent(new CustomEvent('nbtc-rounds-updated', { detail: { rounds: updatedRounds } }));
+  notifySurveysUpdated({ action: 'round_lock', roundNumber: rn, round: rn, status: newStatus });
+
+  return {
+    ok: true,
+    round: rn,
+    round_number: rn,
+    status: newStatus,
+    remoteSuccess,
+    confirmed: backendConfirmed,
+    data: responseData,
+  };
 }
 
 export async function fetchDashboardData(options = {}) {

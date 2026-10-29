@@ -487,8 +487,8 @@ class DatabaseService:
         with cls.connect() as conn:
             rows = conn.execute("SELECT round_number, status, closed_at, closed_by FROM inspection_rounds ORDER BY round_number ASC").fetchall()
             if rows:
-                return [dict(r) for r in rows]
-            return [{"round_number": i, "status": "open", "closed_at": None, "closed_by": None} for i in range(1, 19)]
+                return [{**dict(r), "round": r["round_number"]} for r in rows]
+            return [{"round": i, "round_number": i, "status": "open", "closed_at": None, "closed_by": None} for i in range(1, 19)]
 
     @classmethod
     def is_round_locked(cls, round_number: int) -> bool:
@@ -515,6 +515,7 @@ class DatabaseService:
             """, (int(round_number), status, now_iso, closed_by))
         return {
             "ok": True,
+            "round": int(round_number),
             "round_number": int(round_number),
             "status": status,
             "closed_at": now_iso

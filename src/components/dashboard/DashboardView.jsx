@@ -245,6 +245,7 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
       loadData(true);
     };
     window.addEventListener('nbtc-surveys-updated', handleSurveysUpdated);
+    window.addEventListener('nbtc-rounds-updated', handleSurveysUpdated);
     window.addEventListener('storage', handleSurveysUpdated);
 
     // Refresh immediately when user returns to this tab
@@ -258,6 +259,7 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
     return () => {
       if (bc) bc.close();
       window.removeEventListener('nbtc-surveys-updated', handleSurveysUpdated);
+      window.removeEventListener('nbtc-rounds-updated', handleSurveysUpdated);
       window.removeEventListener('storage', handleSurveysUpdated);
       document.removeEventListener('visibilitychange', handleVisibility);
     };

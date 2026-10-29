@@ -97,6 +97,15 @@ export function SettingsModal({ isOpen, onClose, initialTab, onGitHubUpdated }) 
 
   const handleToggleRoundLock = async (roundNumber, newStatus) => {
     setTogglingRound(roundNumber);
+    // Optimistically update roundsSummary state immediately for instant UI responsiveness
+    setRoundsSummary((prev) =>
+      prev.map((r) =>
+        Number(r.round_number) === Number(roundNumber)
+          ? { ...r, status: newStatus }
+          : r
+      )
+    );
+
     try {
       await updateRoundLockStatus(roundNumber, newStatus);
       toast.success(
@@ -106,6 +115,14 @@ export function SettingsModal({ isOpen, onClose, initialTab, onGitHubUpdated }) 
       );
       await loadRoundsData();
     } catch (e) {
+      // Revert optimistic update on error
+      setRoundsSummary((prev) =>
+        prev.map((r) =>
+          Number(r.round_number) === Number(roundNumber)
+            ? { ...r, status: newStatus === 'closed' ? 'open' : 'closed' }
+            : r
+        )
+      );
       toast.error('ไม่สามารถเปลี่ยนสถานะรอบได้: ' + (e.message || ''));
     } finally {
       setTogglingRound(null);
@@ -559,25 +576,36 @@ export function SettingsModal({ isOpen, onClose, initialTab, onGitHubUpdated }) 
                           {/* Action Button */}
                           <div className="shrink-0 flex items-center justify-end">
                             {isClosed ? (
-                              <button
-                                type="button"
-                                disabled={isToggling}
-                                onClick={() => handleToggleRoundLock(round.round_number, 'open')}
-                                className={cn(
-                                  'inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
-                                  isDark
-                                    ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-600/30 hover:border-emerald-400 hover:text-white'
-                                    : 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-400'
-                                )}
-                                title="ปลดล็อกเพื่อให้สามารถบันทึกหรือแก้ไขข้อมูลในรอบนี้ได้อีกครั้ง"
-                              >
-                                {isToggling ? (
-                                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <Unlock className="h-3.5 w-3.5" />
-                                )}
-                                <span>ปลดล็อกรอบ (Re-open)</span>
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-950/40 text-rose-300 px-3.5 py-1.5 text-xs font-bold cursor-not-allowed opacity-90 shadow-xs"
+                                  title="รอบการตรวจเยี่ยมนี้ถูกปิดรอบแล้ว (Read-Only) ป้องกันการคลิกซ้ำ"
+                                >
+                                  <Lock className="h-3.5 w-3.5 text-rose-400" />
+                                  <span>ปิดรอบแล้ว (Locked)</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isToggling}
+                                  onClick={() => handleToggleRoundLock(round.round_number, 'open')}
+                                  className={cn(
+                                    'inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer shadow-xs active:scale-95',
+                                    isDark
+                                      ? 'border-slate-700 bg-slate-800/60 text-slate-300 hover:border-emerald-500/50 hover:text-emerald-300 hover:bg-emerald-950/30'
+                                      : 'border-slate-300 bg-slate-100 text-slate-700 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50'
+                                  )}
+                                  title="ปลดล็อกเพื่อให้สามารถบันทึกหรือแก้ไขข้อมูลในรอบนี้ได้อีกครั้ง"
+                                >
+                                  {isToggling ? (
+                                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Unlock className="h-3.5 w-3.5" />
+                                  )}
+                                  <span>ปลดล็อกรอบ (Re-open)</span>
+                                </button>
+                              </div>
                             ) : round.canLock ? (
                               <button
                                 type="button"

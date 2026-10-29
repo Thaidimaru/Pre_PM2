@@ -62,6 +62,14 @@ export function SurveyPreviewModal({
   const [copied, setCopied] = useState(false);
   const [activePhoto, setActivePhoto] = useState(null);
 
+  // Subscribe to real-time round locking updates so preview action buttons refresh immediately
+  const [, setRoundsVersion] = useState(0);
+  useEffect(() => {
+    const handleRoundsUpdated = () => setRoundsVersion((v) => v + 1);
+    window.addEventListener('nbtc-rounds-updated', handleRoundsUpdated);
+    return () => window.removeEventListener('nbtc-rounds-updated', handleRoundsUpdated);
+  }, []);
+
   const rawFields = surveyData.fields || {};
   const fields = { ...surveyData, ...rawFields };
   const recordId = surveyData.recordId || fields.recordId || fields.record_id || '-';
