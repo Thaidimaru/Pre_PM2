@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.15.8] - 2026-10-29
+
+### Fixed
+- **แก้ไขปัญหาพาธไฟล์สถิต 404 (Relative Asset Path Resolution) เมื่อเปิดหรือรีเฟรชหน้าย่อยบน GitHub Pages (เช่น `/dashboard/`)**:
+  - **ปรับแต่ง Root-Relative Public Paths ใน `index.html`**:
+    - เปลี่ยนลิงก์ไฟล์สถิตทั้งหมดให้ชี้ไปที่ `/Pre_PM2/` เพื่อป้องกันไม่ให้เบราว์เซอร์ดึงไฟล์สัมพัทธ์กับโฟลเดอร์หน้าย่อย (`/Pre_PM2/dashboard/`):
+      - `<link rel="manifest" href="/Pre_PM2/manifest.json" />`
+      - `<link rel="icon" type="image/png" href="/Pre_PM2/nbtc-logo-dashboard.png" />`
+      - `<link rel="apple-touch-icon" href="/Pre_PM2/nbtc-logo-dashboard.png" />`
+      - `<link rel="preload" href="/Pre_PM2/fonts/THSarabunNew.ttf" as="font" type="font/ttf" crossorigin="anonymous" />`
+      - `<link rel="preload" href="/Pre_PM2/fonts/THSarabunNew-Bold.ttf" as="font" type="font/ttf" crossorigin="anonymous" />`
+  - **กำหนดค่า Base URL ของ Bundler (`vite.config.mjs`)**:
+    - ตั้งค่า `base: process.env.VITE_BASE_PATH || process.env.PAGES_BASE_PATH || '/Pre_PM2/'` ให้ค่าเริ่มต้นยึดกับ Repository Root เสมอ
+  - **อัปเดต PWA Web App Manifest (`public/manifest.json`)**:
+    - กำหนด `start_url` และ `scope` เป็น `/Pre_PM2/`
+    - อัปเดตพาธของไอคอนทั้งหมดเป็น `/Pre_PM2/favicon.png` และ `/Pre_PM2/nbtc-logo-dashboard.png`
+  - **อัปเดต Image Fallback ในคอมโพเนนต์ React (`src/components/Navbar.jsx`, `src/components/auth/LoginView.jsx`)**:
+    - เปลี่ยน onError handler ของโลโก้ NBTC ให้ใช้ `${import.meta.env.BASE_URL}nbtc-logo-dashboard.png`
+- **แก้ไขคำเตือน Font Preload ใน Console ("The resource ... was preloaded using link preload but not used within a few seconds")**:
+  - **จับคู่ URL ฟอนต์ใน `@font-face` (`src/index.css`)**:
+    - เพิ่ม `url('/Pre_PM2/fonts/THSarabunNew.ttf')` และ `url('/Pre_PM2/fonts/THSarabunNew-Bold.ttf')` ลงใน `@font-face` สำหรับทั้ง `'TH Sarabun New'` และ `'THSarabunNew'`
+  - **กระตุ้นการใช้งานฟอนต์ทันที (Font Activation Hints in `index.html`)**:
+    - เพิ่มอิลิเมนต์ซ่อนขนาด 0 พิกเซลหลัง `<div id="root"></div>` กำหนด `font-family:'TH Sarabun New','THSarabunNew'` (น้ำหนัก 400 และ 700) เพื่อให้เบราว์เซอร์ใช้ฟอนต์ที่ Preload ทันทีที่เรนเดอร์ DOM
+
 ## [2.15.7] - 2026-10-29
 
 ### Added

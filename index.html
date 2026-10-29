@@ -9,15 +9,15 @@
   <title>Survey Control Room — NBTC Microwave</title>
 
   <!-- PWA Manifest & Mobile Standalone -->
-  <link rel="manifest" href="./manifest.json" />
+  <link rel="manifest" href="/Pre_PM2/manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Pre-PM NBTC" />
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="./nbtc-logo-dashboard.png" />
-  <link rel="apple-touch-icon" href="./nbtc-logo-dashboard.png" />
+  <link rel="icon" type="image/png" href="/Pre_PM2/nbtc-logo-dashboard.png" />
+  <link rel="apple-touch-icon" href="/Pre_PM2/nbtc-logo-dashboard.png" />
 
   <!-- Google Fonts: Inter, Noto Sans Thai, Prompt, Sarabun -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -27,8 +27,8 @@
     rel="stylesheet" />
 
   <!-- Preload Official TH Sarabun New TTF Fonts for Crisp A4 Report Rendering -->
-  <link rel="preload" href="./fonts/THSarabunNew.ttf" as="font" type="font/ttf" crossorigin />
-  <link rel="preload" href="./fonts/THSarabunNew-Bold.ttf" as="font" type="font/ttf" crossorigin />
+  <link rel="preload" href="/Pre_PM2/fonts/THSarabunNew.ttf" as="font" type="font/ttf" crossorigin="anonymous" />
+  <link rel="preload" href="/Pre_PM2/fonts/THSarabunNew-Bold.ttf" as="font" type="font/ttf" crossorigin="anonymous" />
 
   <!-- Single Page Apps for GitHub Pages (https://github.com/rafgraph/spa-github-pages) -->
   <script type="text/javascript">
@@ -47,6 +47,9 @@
 
 <body class="bg-[#020b1b] text-[#edf6ff] min-h-screen">
   <div id="root"></div>
+  <!-- Zero-size font activation elements to ensure preloaded fonts are used immediately upon DOM ready -->
+  <span style="font-family:'TH Sarabun New','THSarabunNew';font-weight:400;position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;" aria-hidden="true">&#8203;</span>
+  <span style="font-family:'TH Sarabun New','THSarabunNew';font-weight:700;position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;" aria-hidden="true">&#8203;</span>
 
   <noscript>
     <div style="padding:2rem;text-align:center;color:#edf6ff;font-family:sans-serif;">

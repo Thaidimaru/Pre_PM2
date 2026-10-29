@@ -25,7 +25,7 @@ const proxyErrorHandler = (proxy) => {
 // ค่า default คือ '/' เมื่อรัน local dev หรือ deploy บน Cloudflare R2
 
 export default defineConfig({
-  base: process.env.VITE_BASE_PATH || process.env.PAGES_BASE_PATH || (process.env.GITHUB_ACTIONS ? '/Pre_PM2/' : '/'),
+  base: process.env.VITE_BASE_PATH || process.env.PAGES_BASE_PATH || '/Pre_PM2/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

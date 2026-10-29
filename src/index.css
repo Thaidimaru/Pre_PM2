@@ -9,9 +9,10 @@
   font-family: 'TH Sarabun New';
   font-style: normal;
   font-weight: 400;
-  src: local('TH Sarabun New'),
-       local('THSarabunNew'),
+  src: url('/Pre_PM2/fonts/THSarabunNew.ttf') format('truetype'),
        url('/fonts/THSarabunNew.ttf') format('truetype'),
+       local('TH Sarabun New'),
+       local('THSarabunNew'),
        url('https://cdn.jsdelivr.net/npm/font-th-sarabun-new@1.0.0/fonts/THSarabunNew-webfont.woff') format('woff'),
        url('https://fonts.gstatic.com/s/sarabun/v13/dtV71XeaGjh6noVbsomY-w.woff2') format('woff2');
   font-display: swap;
@@ -21,10 +22,11 @@
   font-family: 'TH Sarabun New';
   font-style: normal;
   font-weight: 700;
-  src: local('TH Sarabun New Bold'),
+  src: url('/Pre_PM2/fonts/THSarabunNew-Bold.ttf') format('truetype'),
+       url('/fonts/THSarabunNew-Bold.ttf') format('truetype'),
+       local('TH Sarabun New Bold'),
        local('THSarabunNew-Bold'),
        local('THSarabunNew Bold'),
-       url('/fonts/THSarabunNew-Bold.ttf') format('truetype'),
        url('/fonts/THSarabunNew Bold.ttf') format('truetype'),
        url('https://cdn.jsdelivr.net/npm/font-th-sarabun-new@1.0.0/fonts/THSarabunNew_bold-webfont.woff') format('woff'),
        url('https://fonts.gstatic.com/s/sarabun/v13/dtV51XeaGjh6noVbsmzq5hhV-A.woff2') format('woff2');
@@ -62,9 +64,10 @@
   font-family: 'THSarabunNew';
   font-style: normal;
   font-weight: 400;
-  src: local('TH Sarabun New'),
-       local('THSarabunNew'),
+  src: url('/Pre_PM2/fonts/THSarabunNew.ttf') format('truetype'),
        url('/fonts/THSarabunNew.ttf') format('truetype'),
+       local('TH Sarabun New'),
+       local('THSarabunNew'),
        url('https://cdn.jsdelivr.net/npm/font-th-sarabun-new@1.0.0/fonts/THSarabunNew-webfont.woff') format('woff');
   font-display: swap;
 }
@@ -73,10 +76,11 @@
   font-family: 'THSarabunNew';
   font-style: normal;
   font-weight: 700;
-  src: local('TH Sarabun New Bold'),
+  src: url('/Pre_PM2/fonts/THSarabunNew-Bold.ttf') format('truetype'),
+       url('/fonts/THSarabunNew-Bold.ttf') format('truetype'),
+       local('TH Sarabun New Bold'),
        local('THSarabunNew-Bold'),
        local('THSarabunNew Bold'),
-       url('/fonts/THSarabunNew-Bold.ttf') format('truetype'),
        url('https://cdn.jsdelivr.net/npm/font-th-sarabun-new@1.0.0/fonts/THSarabunNew_bold-webfont.woff') format('woff');
   font-display: swap;
 }

@@ -135,8 +135,9 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
             src={nbtcLogo}
             alt="NBTC Logo"
             onError={(e) => {
-              if (e.currentTarget.src !== '/assets/images/nbtc-logo-dashboard.png') {
-                e.currentTarget.src = '/assets/images/nbtc-logo-dashboard.png';
+              const fallback = `${import.meta.env.BASE_URL}nbtc-logo-dashboard.png`;
+              if (e.currentTarget.src !== fallback) {
+                e.currentTarget.src = fallback;
               }
             }}
             className="h-10 sm:h-12 lg:h-14 w-auto object-contain drop-shadow-[0_0_12px_rgba(8,127,255,0.3)]"

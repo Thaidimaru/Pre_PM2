@@ -57,8 +57,9 @@ export function LoginView({ onLoginSuccess, onCancel }) {
                 src={nbtcLogo}
                 alt="NBTC Logo"
                 onError={(e) => {
-                  if (e.currentTarget.src !== '/assets/images/nbtc-logo-dashboard.png') {
-                    e.currentTarget.src = '/assets/images/nbtc-logo-dashboard.png';
+                  const fallback = `${import.meta.env.BASE_URL}nbtc-logo-dashboard.png`;
+                  if (e.currentTarget.src !== fallback) {
+                    e.currentTarget.src = fallback;
                   }
                 }}
                 className="h-12 w-auto object-contain drop-shadow-[0_0_10px_rgba(8,127,255,0.4)]"
