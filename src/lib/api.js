@@ -669,15 +669,56 @@ function mergeDashboardWithLocal(serverData, localSurveys, currentGhIds = null) 
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
+  // Calculate per-round completion and sync statuses
+  const roundCounts = new Map();
+  for (const s of allSurveys) {
+    const rn = Number(s.round_number || s.fields?.round_number || 1) || 1;
+    roundCounts.set(rn, (roundCounts.get(rn) || 0) + 1);
+  }
+
+  if (Array.isArray(base.roundsSummary)) {
+    const cachedRounds = getCachedRoundStatuses();
+    const serverStatuses = new Map(base.roundsSummary.map((r) => [Number(r.round_number), r.status]));
+    let changed = false;
+    const mergedRounds = cachedRounds.map((cr) => {
+      const serverStatus = serverStatuses.get(Number(cr.round_number));
+      if (serverStatus && serverStatus !== cr.status) {
+        changed = true;
+        return { ...cr, status: serverStatus };
+      }
+      return cr;
+    });
+    if (changed) {
+      setCachedRoundStatuses(mergedRounds);
+    }
+  }
+
+  const currentRoundStatuses = getCachedRoundStatuses();
+  const roundStatusMap = new Map(currentRoundStatuses.map((r) => [Number(r.round_number), r.status]));
+  const totalStationCount = base.stats?.stations || (totalCount > 0 ? 197 : 0);
+
+  const roundsSummary = Array.from({ length: 18 }, (_, idx) => {
+    const rNum = idx + 1;
+    const completed = roundCounts.get(rNum) || 0;
+    return {
+      round_number: rNum,
+      label: `ครั้งที่ ${rNum}`,
+      completed,
+      total: totalStationCount,
+      status: roundStatusMap.get(rNum) || 'open',
+    };
+  });
+
   return {
     updatedAt: new Date().toISOString(),
     stats: {
       surveys: totalCount,
-      stations: base.stats?.stations || (totalCount > 0 ? 197 : 0),
+      stations: totalStationCount,
       allowed: finalAllowed,
       denied: finalDenied,
     },
     provinces: sortedProvinces.length > 0 ? sortedProvinces : (base.provinces || []),
+    roundsSummary,
     recent: allSurveys,
   };
 }
@@ -786,6 +827,133 @@ export function setCachedDashboardData(data) {
       localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify(data));
     }
   } catch (e) {}
+}
+
+
+export const ROUNDS_STATUS_CACHE_KEY = 'nbtc_inspection_rounds_status';
+
+export function getCachedRoundStatuses() {
+  if (typeof window === 'undefined') {
+    return Array.from({ length: 18 }, (_, i) => ({ round_number: i + 1, status: 'open' }));
+  }
+  try {
+    const raw = localStorage.getItem(ROUNDS_STATUS_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const map = new Map(parsed.map((r) => [Number(r.round_number), r]));
+        return Array.from({ length: 18 }, (_, i) => {
+          const rn = i + 1;
+          return map.get(rn) || { round_number: rn, status: 'open' };
+        });
+      }
+    }
+  } catch (e) {}
+  return Array.from({ length: 18 }, (_, i) => ({ round_number: i + 1, status: 'open' }));
+}
+
+export function setCachedRoundStatuses(rounds) {
+  if (typeof window === 'undefined' || !Array.isArray(rounds)) return;
+  try {
+    localStorage.setItem(ROUNDS_STATUS_CACHE_KEY, JSON.stringify(rounds));
+    window.dispatchEvent(new CustomEvent('nbtc-rounds-updated', { detail: { rounds } }));
+  } catch (e) {}
+}
+
+export function isRoundClosed(roundNumber) {
+  const rn = Number(roundNumber || 1);
+  const rounds = getCachedRoundStatuses();
+  const match = rounds.find((r) => Number(r.round_number) === rn);
+  return match?.status === 'closed';
+}
+
+export async function fetchRoundStatuses() {
+  let rounds = null;
+  const workerUrl = getCloudWorkerUrl();
+
+  // 1. Try Cloudflare Worker (D1)
+  if (workerUrl) {
+    try {
+      const res = await fetch(`${workerUrl}/api/rounds?_t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.rounds)) {
+          rounds = data.rounds;
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. Try Local / Dev Proxy
+  if (!rounds && !isStaticHost()) {
+    try {
+      const res = await fetch(`/api/rounds?_t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.rounds)) {
+          rounds = data.rounds;
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 3. Fallback to cache / default
+  if (rounds && Array.isArray(rounds)) {
+    setCachedRoundStatuses(rounds);
+    return rounds;
+  }
+  return getCachedRoundStatuses();
+}
+
+export async function updateRoundLockStatus(roundNumber, status, closedBy = null) {
+  const rn = Number(roundNumber);
+  const newStatus = status === 'closed' ? 'closed' : 'open';
+  const now = new Date().toISOString();
+
+  // Optimistically update local cache
+  const cached = getCachedRoundStatuses();
+  const updatedRounds = cached.map((r) => {
+    if (Number(r.round_number) === rn) {
+      return {
+        ...r,
+        status: newStatus,
+        closed_at: newStatus === 'closed' ? now : null,
+        closed_by: newStatus === 'closed' ? closedBy : null,
+      };
+    }
+    return r;
+  });
+  setCachedRoundStatuses(updatedRounds);
+
+  // Sync to Cloudflare Worker or Local server
+  let remoteSuccess = false;
+  const workerUrl = getCloudWorkerUrl();
+  const payload = { round_number: rn, status: newStatus, closed_by: closedBy };
+
+  if (workerUrl) {
+    try {
+      const res = await fetch(`${workerUrl}/api/rounds/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) remoteSuccess = true;
+    } catch (e) {}
+  }
+
+  if (!remoteSuccess && !isStaticHost()) {
+    try {
+      const res = await fetch(`/api/rounds/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) remoteSuccess = true;
+    } catch (e) {}
+  }
+
+  notifySurveysUpdated({ action: 'round_lock', roundNumber: rn, status: newStatus });
+  return { ok: true, round_number: rn, status: newStatus, remoteSuccess };
 }
 
 export async function fetchDashboardData(options = {}) {
@@ -1267,6 +1435,14 @@ export async function submitSurvey(arg1, arg2, arg3) {
     photos = arg2 || [];
     const roundNumber = Number(fields.round_number || fields.round || 1) || 1;
     fields = { ...fields, round_number: roundNumber };
+
+    if (isRoundClosed(roundNumber)) {
+      throw new Error(`รอบการตรวจเยี่ยมครั้งที่ ${roundNumber} ถูกปิดรอบแล้ว (Read-Only) และไม่สามารถแก้ไขข้อมูลได้`);
+    }
+
+    if (isRoundClosed(roundNumber)) {
+      throw new Error(`รอบการตรวจเยี่ยมครั้งที่ ${roundNumber} ถูกปิดรอบแล้ว (Read-Only) และไม่สามารถบันทึกข้อมูลใหม่ได้`);
+    }
   }
 
   let serverResult = null;
@@ -1278,6 +1454,9 @@ export async function submitSurvey(arg1, arg2, arg3) {
   // Option 2 (Cloudflare Worker Edge API - Centralized Cloudflare D1 Database):
   if (workerUrl) {
     const res = await callWorkerMutatingApi(workerUrl, '/api/save', { fields, photos });
+    if (res.status === 403 || res.data?.forbidden) {
+      throw new Error(res.data?.error || 'รอบการตรวจเยี่ยมนี้ถูกปิดรอบแล้ว (Read-Only) และไม่สามารถบันทึกข้อมูลได้');
+    }
     if (res.ok && res.data) {
       serverResult = res.data;
     } else {
@@ -1286,6 +1465,9 @@ export async function submitSurvey(arg1, arg2, arg3) {
   } else if (!isStaticHost()) {
     const extraHeaders = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await callLocalMutatingApi('/api/save', '/save', { fields, photos }, extraHeaders);
+    if (res.status === 403 || res.data?.forbidden) {
+      throw new Error(res.data?.error || 'รอบการตรวจเยี่ยมนี้ถูกปิดรอบแล้ว (Read-Only) และไม่สามารถบันทึกข้อมูลได้');
+    }
     if (res.ok) {
       serverResult = res.data;
     } else {
@@ -1436,6 +1618,9 @@ export async function updateSurvey(arg1, arg2, arg3) {
   // Option 2 (Cloudflare Worker Edge API - Centralized Cloudflare D1 Database):
   if (workerUrl) {
     const res = await callWorkerMutatingApi(workerUrl, '/api/update', { recordId, fields, photos, isUpdate: true });
+    if (res.status === 403 || res.data?.forbidden) {
+      throw new Error(res.data?.error || 'รอบการตรวจเยี่ยมนี้ถูกปิดรอบแล้ว (Read-Only) และไม่สามารถแก้ไขข้อมูลได้');
+    }
     if (res.ok && res.data) {
       serverResult = res.data;
     } else {
@@ -1443,6 +1628,9 @@ export async function updateSurvey(arg1, arg2, arg3) {
     }
   } else if (!isStaticHost()) {
     const res = await callLocalMutatingApi('/api/update', '/api/save', { recordId, fields, photos, isUpdate: true });
+    if (res.status === 403 || res.data?.forbidden) {
+      throw new Error(res.data?.error || 'รอบการตรวจเยี่ยมนี้ถูกปิดรอบแล้ว (Read-Only) และไม่สามารถแก้ไขข้อมูลได้');
+    }
     if (res.ok) {
       serverResult = res.data;
     } else {
@@ -1566,6 +1754,19 @@ export async function deleteSurveys(recordIds) {
   const ids = (Array.isArray(recordIds) ? recordIds : [recordIds]).filter(Boolean).map(String);
   if (ids.length === 0) return { deleted: false, count: 0, deletedIds: [], failed: [] };
 
+  // Guard: Reject deletion if any target record belongs to a closed round
+  const cachedDashboard = getCachedDashboardData();
+  const allKnownSurveys = [...(getLocalSurveys() || []), ...(cachedDashboard?.recent || [])];
+  const knownMap = new Map(allKnownSurveys.map((s) => [s.recordId, s]));
+
+  for (const id of ids) {
+    const s = knownMap.get(id);
+    const rn = Number(s?.round_number || s?.fields?.round_number || 1) || 1;
+    if (isRoundClosed(rn)) {
+      throw new Error(`ไม่สามารถลบรายการได้ เนื่องจากรอบการตรวจเยี่ยมครั้งที่ ${rn} ถูกปิดรอบแล้ว (Read-Only)`);
+    }
+  }
+
   // 1. Immediately record tombstone so deleted records NEVER resurrect
   addDeletedSurveyIds(ids);
 
@@ -1600,6 +1801,9 @@ export async function deleteSurveys(recordIds) {
   // 4. Delete via Cloudflare Worker Edge API or Local Server
   if (workerUrl) {
     const res = await callWorkerMutatingApi(workerUrl, '/api/delete', { recordIds: ids });
+    if (res.status === 403 || res.data?.forbidden) {
+      throw new Error(res.data?.error || 'รอบการตรวจเยี่ยมนี้ถูกปิดรอบแล้ว (Read-Only) และไม่สามารถลบข้อมูลได้');
+    }
     if (res.ok && res.data) {
       serverResult = res.data;
     } else {

@@ -34,7 +34,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { SurveyReportModal } from '@/components/export/SurveyReportModal';
 import { SurveyPreviewModal } from '@/components/dashboard/SurveyPreviewModal';
 import { exportSurveysToExcel } from '@/lib/excelExport';
-import { deleteSurveys, getDeletedSurveyIds, githubErrorText, isLocalApiRateLimited } from '@/lib/api';
+import { deleteSurveys, getDeletedSurveyIds, githubErrorText, isLocalApiRateLimited, isRoundClosed } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
@@ -311,12 +311,20 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
   const displayedItems = pageSize === 'all' ? filteredSurveys : filteredSurveys.slice(startIndex, endIndex);
 
   // Selection Logic
+  const selectableItems = displayedItems.filter((item) => {
+    const rn = Number(item.round_number || item.fields?.round_number || 1);
+    return !isRoundClosed(rn);
+  });
   const isAllSelected =
-    displayedItems.length > 0 && displayedItems.every((item) => selectedIds.has(item.recordId));
+    selectableItems.length > 0 && selectableItems.every((item) => selectedIds.has(item.recordId));
   const isSomeSelected =
-    displayedItems.some((item) => selectedIds.has(item.recordId)) && !isAllSelected;
+    selectableItems.some((item) => selectedIds.has(item.recordId)) && !isAllSelected;
 
   const handleToggleSelect = (recordId) => {
+    const item = displayedItems.find((s) => s.recordId === recordId);
+    const rn = Number(item?.round_number || item?.fields?.round_number || 1);
+    if (isRoundClosed(rn)) return;
+
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(recordId)) {
@@ -334,7 +342,7 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
       if (isAllSelected) {
         displayedItems.forEach((item) => next.delete(item.recordId));
       } else {
-        displayedItems.forEach((item) => next.add(item.recordId));
+        selectableItems.forEach((item) => next.add(item.recordId));
       }
       return next;
     });
@@ -1426,6 +1434,8 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
             <tbody className={cn('divide-y', isDark ? 'divide-slate-800/60' : 'divide-slate-200')}>
               {displayedItems.length > 0 ? (
                 displayedItems.map((item, rowIdx) => {
+                  const itemRound = Number(item.round_number || item.fields?.round_number || 1);
+                  const isLocked = isRoundClosed(itemRound);
                   const isSelected = selectedIds.has(item.recordId);
                   const f = item.fields || {};
                   const stationName = item.station?.trim() || f.stationName?.trim() || f.station?.trim() || item.stationName?.trim() || 'สถานีไม่ระบุชื่อ';
@@ -1455,10 +1465,14 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
                       <td className="py-3.5 pl-3.5 pr-1 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
-                          checked={isSelected}
+                          disabled={isLocked}
+                          checked={isSelected && !isLocked}
                           onChange={() => handleToggleSelect(item.recordId)}
-                          className="h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-cyan-500 focus:ring-cyan-500 cursor-pointer accent-cyan-500"
-                          title={`เลือกสถานี ${stationName}`}
+                          className={cn(
+                            'h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-cyan-500 focus:ring-cyan-500 accent-cyan-500',
+                            isLocked ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'
+                          )}
+                          title={isLocked ? 'รอบนี้ถูกปิดรอบแล้ว (Read-Only) ไม่สามารถเลือกลบได้' : `เลือกสถานี ${stationName}`}
                           aria-label={`เลือกสถานี ${stationName}`}
                         />
                       </td>
@@ -1485,10 +1499,18 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
                           <ExternalLink className="h-3 w-3 opacity-50 group-hover:opacity-100 transition-opacity shrink-0" />
                           <span className={cn(
                             'text-[10px] px-1.5 py-0.5 rounded font-mono font-bold border ml-1',
-                            isDark ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' : 'bg-sky-100 text-sky-800 border-sky-300'
+                            isLocked
+                              ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                              : isDark ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' : 'bg-sky-100 text-sky-800 border-sky-300'
                           )}>
-                            R{item.round_number || item.fields?.round_number || 1}
+                            R{itemRound}
                           </span>
+                          {isLocked && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold border ml-1 border-rose-500/40 bg-rose-500/15 text-rose-300 inline-flex items-center gap-0.5" title="รอบนี้ถูกปิดรอบแล้ว (Read-Only)">
+                              <Lock className="h-2.5 w-2.5" />
+                              <span>Locked</span>
+                            </span>
+                          )}
                         </button>
                       </td>
 
@@ -1644,33 +1666,43 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
                           {/* Edit Button */}
                           <button
                             type="button"
+                            disabled={isLocked}
                             onClick={() => {
+                              if (isLocked) return;
                               if (onEditSurvey) onEditSurvey(item);
                               else if (onNavigate) onNavigate('field', item);
                             }}
                             className={cn(
-                              'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer shadow-2xs',
-                              isDark
-                                ? 'border-amber-500/40 bg-amber-950/40 text-amber-300 hover:bg-amber-600/30 hover:border-amber-400 hover:text-white'
-                                : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-400'
+                              'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 transition-all shadow-2xs',
+                              isLocked
+                                ? 'opacity-40 cursor-not-allowed border-slate-700 bg-slate-800/40 text-slate-500'
+                                : isDark
+                                ? 'border-amber-500/40 bg-amber-950/40 text-amber-300 hover:bg-amber-600/30 hover:border-amber-400 hover:text-white cursor-pointer'
+                                : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-400 cursor-pointer'
                             )}
-                            title="แก้ไขข้อมูลการตรวจเยี่ยมนี้"
+                            title={isLocked ? 'รอบนี้ถูกปิดรอบแล้ว (Read-Only ไม่อนุญาตให้แก้ไข)' : 'แก้ไขข้อมูลการตรวจเยี่ยมนี้'}
                           >
-                            <Pencil className="h-3.5 w-3.5 shrink-0" />
-                            <span className="hidden xl:inline whitespace-nowrap">แก้ไข</span>
+                            {isLocked ? <Lock className="h-3.5 w-3.5 shrink-0" /> : <Pencil className="h-3.5 w-3.5 shrink-0" />}
+                            <span className="hidden xl:inline whitespace-nowrap">{isLocked ? 'ล็อก' : 'แก้ไข'}</span>
                           </button>
 
                           {/* Delete Button */}
                           <button
                             type="button"
-                            onClick={() => setDeleteTarget(item)}
+                            disabled={isLocked}
+                            onClick={() => {
+                              if (isLocked) return;
+                              setDeleteTarget(item);
+                            }}
                             className={cn(
-                              'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer shadow-2xs',
-                              isDark
-                                ? 'border-rose-500/40 bg-rose-950/40 text-rose-300 hover:bg-rose-600/30 hover:border-rose-400 hover:text-white'
-                                : 'border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 hover:border-rose-400'
+                              'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 transition-all shadow-2xs',
+                              isLocked
+                                ? 'opacity-40 cursor-not-allowed border-slate-700 bg-slate-800/40 text-slate-500'
+                                : isDark
+                                ? 'border-rose-500/40 bg-rose-950/40 text-rose-300 hover:bg-rose-600/30 hover:border-rose-400 hover:text-white cursor-pointer'
+                                : 'border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 hover:border-rose-400 cursor-pointer'
                             )}
-                            title="ลบรายการนี้"
+                            title={isLocked ? 'รอบนี้ถูกปิดรอบแล้ว (Read-Only ไม่อนุญาตให้ลบ)' : 'ลบรายการนี้'}
                           >
                             <Trash2 className="h-3.5 w-3.5 shrink-0" />
                             <span className="hidden xl:inline whitespace-nowrap">ลบ</span>

@@ -224,6 +224,17 @@ class DatabaseService:
             existing_survey_cols = {c[1] for c in cursor.fetchall()}
             if "round_number" not in existing_survey_cols:
                 conn.execute("ALTER TABLE surveys ADD COLUMN round_number INTEGER NOT NULL DEFAULT 1")
+            conn.executescript("""
+                CREATE TABLE IF NOT EXISTS inspection_rounds (
+                    round_number INTEGER PRIMARY KEY,
+                    status TEXT NOT NULL DEFAULT 'open',
+                    closed_at TEXT DEFAULT NULL,
+                    closed_by TEXT DEFAULT NULL,
+                    notes TEXT DEFAULT NULL
+                );
+            """)
+            for r in range(1, 19):
+                conn.execute("INSERT OR IGNORE INTO inspection_rounds (round_number, status) VALUES (?, 'open')", (r,))
 
             # Synchronize stations from DATABASE.xlsx and AGWBS.xlsx
             cls._sync_stations(conn)
@@ -349,7 +360,7 @@ class DatabaseService:
                 fields = record.get("fields", {})
                 conn.execute(
                     "INSERT OR IGNORE INTO surveys(record_id, saved_at, fields_json) VALUES (?, ?, ?)",
-                    (record_id, saved_at, json.dumps(fields, ensure_ascii=False))
+                    (record_id, saved_at, json.dumps(fields, ensure_ascii=False), int(fields.get("round_number") or fields.get("round") or 1))
                 )
             except Exception as e:
                 print(f"Warning: Failed to seed {path.name}: {e}")
@@ -472,6 +483,44 @@ class DatabaseService:
             return rows
 
     @classmethod
+    def get_round_statuses(cls) -> list:
+        with cls.connect() as conn:
+            rows = conn.execute("SELECT round_number, status, closed_at, closed_by FROM inspection_rounds ORDER BY round_number ASC").fetchall()
+            if rows:
+                return [dict(r) for r in rows]
+            return [{"round_number": i, "status": "open", "closed_at": None, "closed_by": None} for i in range(1, 19)]
+
+    @classmethod
+    def is_round_locked(cls, round_number: int) -> bool:
+        if not round_number:
+            return False
+        try:
+            with cls.connect() as conn:
+                row = conn.execute("SELECT status FROM inspection_rounds WHERE round_number = ?", (int(round_number),)).fetchone()
+                return bool(row and row["status"] == "closed")
+        except Exception:
+            return False
+
+    @classmethod
+    def update_round_lock(cls, round_number: int, status: str, closed_by: str = None) -> dict:
+        now_iso = dt.datetime.now(dt.timezone.utc).isoformat() if status == "closed" else None
+        with cls.connect() as conn:
+            conn.execute("""
+                INSERT INTO inspection_rounds (round_number, status, closed_at, closed_by)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(round_number) DO UPDATE SET
+                    status = excluded.status,
+                    closed_at = excluded.closed_at,
+                    closed_by = excluded.closed_by
+            """, (int(round_number), status, now_iso, closed_by))
+        return {
+            "ok": True,
+            "round_number": int(round_number),
+            "status": status,
+            "closed_at": now_iso
+        }
+
+    @classmethod
     def get_stations(cls) -> list:
         """Return all station records."""
         with cls.connect() as conn:
@@ -485,7 +534,7 @@ class DatabaseService:
             cls._seed_surveys_from_json(conn)
             stations = [dict(s) for s in conn.execute("SELECT * FROM stations").fetchall()]
             surveys = [dict(r) for r in conn.execute(
-                "SELECT id, record_id, saved_at, fields_json FROM surveys WHERE saved_at >= ? ORDER BY saved_at DESC",
+                "SELECT id, record_id, round_number, saved_at, fields_json FROM surveys WHERE saved_at >= ? ORDER BY saved_at DESC",
                 (AppConfig.SURVEY_RESET_DATE,)
             ).fetchall()]
             photo_rows = [dict(p) for p in conn.execute("SELECT id, survey_id, name, content_type, length(data) as size FROM survey_photos").fetchall()]
@@ -593,8 +642,26 @@ class DatabaseService:
             reverse=True
         )[:10]
 
+        round_counts = {}
+        for s in surveys:
+            rn = s.get("round_number") or 1
+            round_counts[rn] = round_counts.get(rn, 0) + 1
+
+        round_status_map = {r["round_number"]: r["status"] for r in cls.get_round_statuses()}
+        rounds_summary = []
+        for r in range(1, 19):
+            cnt = round_counts.get(r, 0)
+            rounds_summary.append({
+                "round_number": r,
+                "label": f"ครั้งที่ {r}",
+                "completed": cnt,
+                "total": len(stations),
+                "status": round_status_map.get(r, "open")
+            })
+
         return {
             "updatedAt": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "roundsSummary": rounds_summary,
             "stats": {
                 "surveys": len(surveys),
                 "stations": len(stations),
@@ -835,9 +902,10 @@ class DatabaseService:
         saved_at = dt.datetime.now(dt.timezone.utc).isoformat()
 
         with cls.connect() as conn:
+            round_number = int(fields.get("round_number") or fields.get("round") or 1)
             cursor = conn.execute(
-                "INSERT INTO surveys (record_id, saved_at, fields_json) VALUES (?, ?, ?)",
-                (record_id, saved_at, json.dumps(fields, ensure_ascii=False))
+                "INSERT INTO surveys (record_id, saved_at, fields_json, round_number) VALUES (?, ?, ?, ?)",
+                (record_id, saved_at, json.dumps(fields, ensure_ascii=False), round_number)
             )
             survey_id = cursor.lastrowid
 
@@ -965,9 +1033,10 @@ class DatabaseService:
             saved_at = s_row["saved_at"]
 
             fields["updatedAt"] = now_iso
+            round_number = int(fields.get("round_number") or fields.get("round") or 1)
             conn.execute(
-                "UPDATE surveys SET fields_json = ? WHERE id = ?",
-                (json.dumps(fields, ensure_ascii=False), survey_id)
+                "UPDATE surveys SET fields_json = ?, round_number = ? WHERE id = ?",
+                (json.dumps(fields, ensure_ascii=False), round_number, survey_id)
             )
 
             if photos is not None:
@@ -1376,6 +1445,12 @@ class SurveyRequestHandler(BaseHTTPRequestHandler):
             })
             return
 
+        # 4.32 API: Inspection Rounds Status & Lock Management Endpoint
+        if parsed_path in ("/api/rounds", "/api/settings/rounds", "/rounds"):
+            rounds = DatabaseService.get_round_statuses()
+            self.send_json_response(200, {"ok": True, "rounds": rounds})
+            return
+
         # 4.35 API: OneDrive Sync Status
         if parsed_path in ("/api/onedrive-status", "/onedrive-status"):
             status = DatabaseService.get_onedrive_status()
@@ -1480,11 +1555,44 @@ class SurveyRequestHandler(BaseHTTPRequestHandler):
                     )
                 return
 
+            # 1.1 Inspection Rounds Lock Management Endpoint
+            if path in ("/api/rounds/lock", "/api/rounds", "/api/settings/rounds", "/rounds/lock"):
+                round_num = int(payload.get("round_number") or payload.get("round") or 0)
+                if not (1 <= round_num <= 18):
+                    self.send_json_response(400, {"ok": False, "error": "Invalid round_number (range 1 to 18)"})
+                    return
+                new_status = "closed" if payload.get("status") == "closed" else "open"
+                res = DatabaseService.update_round_lock(round_num, new_status)
+                self.send_json_response(200, res)
+                return
+
             # 2. Save Survey Endpoint (Auto-detects update if recordId present or isUpdate flag)
             if path in ("/save", "/api/save"):
                 fields = payload.get("fields", {})
                 photos = payload.get("photos", [])
                 record_id = payload.get("recordId") or fields.get("recordId")
+                round_num = int(fields.get("round_number") or fields.get("round") or 1)
+
+                if DatabaseService.is_round_locked(round_num):
+                    self.send_json_response(403, {
+                        "ok": False,
+                        "error": "This inspection round has been closed and cannot be modified",
+                        "forbidden": True,
+                        "round_number": round_num
+                    })
+                    return
+
+                if record_id:
+                    with DatabaseService.connect() as conn:
+                        existing = conn.execute("SELECT round_number FROM surveys WHERE record_id = ?", (record_id,)).fetchone()
+                        if existing and DatabaseService.is_round_locked(existing["round_number"]):
+                            self.send_json_response(403, {
+                                "ok": False,
+                                "error": "This inspection round has been closed and cannot be modified",
+                                "forbidden": True,
+                                "round_number": existing["round_number"]
+                            })
+                            return
 
                 if record_id:
                     ok, gh_res = DatabaseService.update_survey(record_id, fields, photos)
@@ -1519,6 +1627,27 @@ class SurveyRequestHandler(BaseHTTPRequestHandler):
                     self.send_json_response(400, {"error": "Missing recordId"})
                     return
 
+                round_num = int(fields.get("round_number") or fields.get("round") or 1)
+                if DatabaseService.is_round_locked(round_num):
+                    self.send_json_response(403, {
+                        "ok": False,
+                        "error": "This inspection round has been closed and cannot be modified",
+                        "forbidden": True,
+                        "round_number": round_num
+                    })
+                    return
+
+                with DatabaseService.connect() as conn:
+                    existing = conn.execute("SELECT round_number FROM surveys WHERE record_id = ?", (record_id,)).fetchone()
+                    if existing and DatabaseService.is_round_locked(existing["round_number"]):
+                        self.send_json_response(403, {
+                            "ok": False,
+                            "error": "This inspection round has been closed and cannot be modified",
+                            "forbidden": True,
+                            "round_number": existing["round_number"]
+                        })
+                        return
+
                 ok, gh_res = DatabaseService.update_survey(record_id, fields, photos)
                 self.send_json_response(200, {
                     "saved": True,
@@ -1539,6 +1668,18 @@ class SurveyRequestHandler(BaseHTTPRequestHandler):
                 if not record_ids:
                     self.send_json_response(400, {"error": "Missing recordIds or recordId"})
                     return
+
+                with DatabaseService.connect() as conn:
+                    for rid in record_ids:
+                        row = conn.execute("SELECT round_number FROM surveys WHERE record_id = ?", (rid,)).fetchone()
+                        if row and DatabaseService.is_round_locked(row["round_number"]):
+                            self.send_json_response(403, {
+                                "ok": False,
+                                "error": "This inspection round has been closed and cannot be modified",
+                                "forbidden": True,
+                                "round_number": row["round_number"]
+                            })
+                            return
 
                 res = DatabaseService.delete_surveys(record_ids)
                 self.send_json_response(200, res)
@@ -1570,6 +1711,16 @@ class SurveyRequestHandler(BaseHTTPRequestHandler):
         if parsed_path.startswith("/api/survey/"):
             rec_id = parsed_path[12:].split("/")[0].strip()
             if rec_id:
+                with DatabaseService.connect() as conn:
+                    row = conn.execute("SELECT round_number FROM surveys WHERE record_id = ?", (rec_id,)).fetchone()
+                    if row and DatabaseService.is_round_locked(row["round_number"]):
+                        self.send_json_response(403, {
+                            "ok": False,
+                            "error": "This inspection round has been closed and cannot be modified",
+                            "forbidden": True,
+                            "round_number": row["round_number"]
+                        })
+                        return
                 res = DatabaseService.delete_surveys([rec_id])
                 self.send_json_response(200, res)
                 return
@@ -1578,6 +1729,17 @@ class SurveyRequestHandler(BaseHTTPRequestHandler):
             try:
                 payload = json.loads(body_bytes.decode("utf-8") or "{}")
                 record_ids = payload.get("recordIds") or ([payload.get("recordId")] if payload.get("recordId") else [])
+                with DatabaseService.connect() as conn:
+                    for rid in record_ids:
+                        row = conn.execute("SELECT round_number FROM surveys WHERE record_id = ?", (rid,)).fetchone()
+                        if row and DatabaseService.is_round_locked(row["round_number"]):
+                            self.send_json_response(403, {
+                                "ok": False,
+                                "error": "This inspection round has been closed and cannot be modified",
+                                "forbidden": True,
+                                "round_number": row["round_number"]
+                            })
+                            return
                 res = DatabaseService.delete_surveys(record_ids)
                 self.send_json_response(200, res)
                 return

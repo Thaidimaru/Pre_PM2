@@ -35,10 +35,10 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { fetchStations, submitSurvey, updateSurvey, normalizeStationKey, findStationByName, githubErrorText, isLocalApiRateLimited, isStaticHost } from '@/lib/api';
+import { fetchStations, submitSurvey, updateSurvey, normalizeStationKey, findStationByName, githubErrorText, isLocalApiRateLimited, isStaticHost, isRoundClosed, fetchRoundStatuses, getCachedRoundStatuses } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 import { SurveyReportModal } from '@/components/export/SurveyReportModal';
-import { Printer, FileText, LayoutDashboard } from 'lucide-react';
+import { Printer, FileText, LayoutDashboard, Lock, AlertTriangle } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +47,25 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
   const [stations, setStations] = useState([]);
   const [showReportModal, setShowReportModal] = useState(false);
   const [lastSavedReport, setLastSavedReport] = useState(null);
+  const [roundStatuses, setRoundStatuses] = useState(() => getCachedRoundStatuses());
+
+  // Subscribe to real-time round lock updates
+  useEffect(() => {
+    fetchRoundStatuses().then((st) => setRoundStatuses(st)).catch(() => {});
+    const onRoundsUpdated = (e) => {
+      if (e.detail?.rounds) setRoundStatuses(e.detail.rounds);
+    };
+    window.addEventListener('nbtc-rounds-updated', onRoundsUpdated);
+    return () => window.removeEventListener('nbtc-rounds-updated', onRoundsUpdated);
+  }, []);
+
+  const openRounds = useMemo(() => {
+    const closedSet = new Set(
+      roundStatuses.filter((r) => r.status === 'closed').map((r) => Number(r.round_number))
+    );
+    return Array.from({ length: 18 }, (_, i) => i + 1).filter((r) => !closedSet.has(r));
+  }, [roundStatuses]);
+
   const [formData, setFormData] = useState({
     round_number: 1,
             permit: 'อนุญาต',
@@ -64,6 +83,18 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
   const [activePreviewPhoto, setActivePreviewPhoto] = useState(null);
   const fileInputRef = useRef(null);
   const lastAutoFilledStationRef = useRef('');
+
+  // Advance to earliest open round when starting fresh survey
+  useEffect(() => {
+    if (!editingSurvey && openRounds.length > 0) {
+      setFormData((prev) => {
+        if (!prev.round_number || !openRounds.includes(Number(prev.round_number))) {
+          return { ...prev, round_number: openRounds[0] };
+        }
+        return prev;
+      });
+    }
+  }, [editingSurvey, openRounds]);
 
   // Sanitize scrubbed PII helper
   const sanitizePii = (v) => (!v || v === '***' || /^[*]+$/.test(String(v).trim()) ? '' : String(v).trim());
@@ -518,38 +549,69 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
           </div>
 
           <div className="space-y-4">
+            {/* Closed Round Read-Only Protection Banner */}
+            {isRoundClosed(formData.round_number || 1) && (
+              <div className="rounded-xl border border-rose-500/50 bg-rose-500/15 p-4 mb-4 flex items-start gap-3 text-rose-300 animate-fade-in shadow-md">
+                <Lock className="h-5 w-5 shrink-0 text-rose-400 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="font-bold text-sm text-rose-200">
+                    รอบการตรวจเยี่ยมครั้งที่ {formData.round_number || 1} ถูกปิดรอบแล้ว (Closed & Locked — Read-Only)
+                  </h4>
+                  <p className="text-xs text-rose-300/90 leading-relaxed">
+                    รอบการตรวจเยี่ยมนี้ได้รับการสำรวจครบถ้วน 197 สถานีและถูกล็อกความปลอดภัยโดยผู้ดูแลระบบแล้ว ข้อมูลทั้งหมดถูกตรึงเป็นสถานะอ่านอย่างเดียว (Read-Only) ไม่อนุญาตให้แก้ไขหรือบันทึกทับข้อมูล
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* รอบการตรวจเยี่ยม (Inspection Round 1 - 18) */}
             <div className={cn(
               'rounded-xl border p-3.5 space-y-1.5 transition-colors mb-4',
-              isDark ? 'border-cyan-500/30 bg-cyan-950/20' : 'border-sky-300 bg-sky-50/60'
+              isRoundClosed(formData.round_number || 1)
+                ? 'border-rose-500/40 bg-rose-950/20'
+                : isDark ? 'border-cyan-500/30 bg-cyan-950/20' : 'border-sky-300 bg-sky-50/60'
             )}>
               <div className="flex items-center justify-between">
-                <label htmlFor="round_number" className={cn(labelClass, isDark ? 'text-cyan-300' : 'text-sky-800', 'font-bold mb-0')}>
-                  รอบการตรวจเยี่ยม (Inspection Round) <span className="text-rose-400">*</span>
+                <label htmlFor="round_number" className={cn(labelClass, isRoundClosed(formData.round_number || 1) ? 'text-rose-300' : isDark ? 'text-cyan-300' : 'text-sky-800', 'font-bold mb-0 flex items-center gap-1.5')}>
+                  {isRoundClosed(formData.round_number || 1) && <Lock className="h-3.5 w-3.5 text-rose-400" />}
+                  <span>รอบการตรวจเยี่ยม (Inspection Round)</span> <span className="text-rose-400">*</span>
                 </label>
                 <span className={cn(
                   'text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold border',
-                  isDark ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' : 'bg-sky-100 text-sky-800 border-sky-300'
+                  isRoundClosed(formData.round_number || 1)
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                    : isDark ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' : 'bg-sky-100 text-sky-800 border-sky-300'
                 )}>
-                  รอบที่ {formData.round_number || 1} จาก 18 รอบ
+                  {isRoundClosed(formData.round_number || 1)
+                    ? `รอบที่ ${formData.round_number || 1} (ปิดรอบแล้ว)`
+                    : `รอบที่ ${formData.round_number || 1} จาก 18 รอบ`}
                 </span>
               </div>
               <select
                 id="round_number"
                 name="round_number"
                 required
+                disabled={isRoundClosed(formData.round_number || 1)}
                 value={formData.round_number || 1}
                 onChange={(e) => updateField('round_number', parseInt(e.target.value, 10))}
-                className={cn(inputClass, 'font-medium cursor-pointer')}
+                className={cn(inputClass, 'font-medium cursor-pointer', isRoundClosed(formData.round_number || 1) && 'opacity-75 cursor-not-allowed border-rose-500/40 bg-rose-950/30 text-rose-200')}
               >
-                {Array.from({ length: 18 }, (_, i) => i + 1).map((roundNum) => (
+                {/* If editing an existing survey from a closed round, display it disabled */}
+                {isRoundClosed(formData.round_number || 1) && !openRounds.includes(Number(formData.round_number || 1)) && (
+                  <option value={formData.round_number || 1} disabled className="bg-rose-950 text-rose-300">
+                    รอบการตรวจเยี่ยม ครั้งที่ {formData.round_number || 1} (ปิดรอบแล้ว - Read-Only)
+                  </option>
+                )}
+                {openRounds.map((roundNum) => (
                   <option key={roundNum} value={roundNum} className={isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}>
                     รอบการตรวจเยี่ยม ครั้งที่ {roundNum} (รอบที่ {roundNum})
                   </option>
                 ))}
               </select>
-              <p className={cn('text-[11px] leading-tight', isDark ? 'text-slate-400' : 'text-slate-500')}>
-                เลือกรอบการตรวจเยี่ยมตามรอบแผนงาน Pre-PM (รองรับรอบที่ 1 ถึง 18)
+              <p className={cn('text-[11px] leading-tight', isRoundClosed(formData.round_number || 1) ? 'text-rose-400' : isDark ? 'text-slate-400' : 'text-slate-500')}>
+                {isRoundClosed(formData.round_number || 1)
+                  ? 'รอบการตรวจเยี่ยมนี้ถูกปิดรอบแล้ว ไม่สามารถเปลี่ยนรอบหรือแก้ไขข้อมูลได้'
+                  : 'แสดงเฉพาะรอบที่ยังเปิดอยู่ (รอบที่ปิดแล้วจะถูกกรองออกโดยอัตโนมัติ)'}
               </p>
             </div>
             <div>
@@ -1032,10 +1094,12 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
           type="submit"
-          disabled={isSubmitting || isRateLimited}
+          disabled={isSubmitting || isRateLimited || isRoundClosed(formData.round_number || 1)}
           className={cn(
             'flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-base font-bold tracking-normal leading-normal text-slate-950 shadow-lg transition-all disabled:opacity-60 cursor-pointer',
-            isEditMode
+            isRoundClosed(formData.round_number || 1)
+              ? 'bg-slate-700 text-slate-400 cursor-not-allowed shadow-none'
+              : isEditMode
               ? 'bg-gradient-to-r from-amber-500 via-orange-400 to-amber-300 shadow-amber-500/20 hover:shadow-amber-500/30'
               : 'bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 shadow-blue-500/20 hover:shadow-cyan-500/30'
           )}
@@ -1044,6 +1108,11 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
               <span>{isEditMode ? 'กำลังส่งข้อมูลแก้ไขไปยัง Cloudflare D1...' : 'กำลังส่งข้อมูลและบันทึกลงฐานข้อมูลกลาง Cloudflare D1...'}</span>
+            </>
+          ) : isRoundClosed(formData.round_number || 1) ? (
+            <>
+              <Lock className="h-5 w-5 text-rose-400" />
+              <span className="text-rose-300">รอบที่ {formData.round_number || 1} ถูกปิดรอบแล้ว (Read-Only — ไม่อนุญาตให้แก้ไข)</span>
             </>
           ) : isRateLimited ? (
             <>

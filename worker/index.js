@@ -185,10 +185,39 @@ async function ensureSchema(db) {
         last_change_timestamp TEXT NOT NULL,
         change_counter INTEGER NOT NULL DEFAULT 1
       )`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS inspection_rounds (
+        round_number INTEGER PRIMARY KEY,
+        status TEXT NOT NULL DEFAULT 'open',
+        closed_at TEXT DEFAULT NULL,
+        closed_by TEXT DEFAULT NULL,
+        notes TEXT DEFAULT NULL
+      )`),
     ]);
+
+    // Seed default rounds 1..18 if table empty
+    try {
+      const countRow = await db.prepare('SELECT COUNT(*) as count FROM inspection_rounds').first();
+      if (!countRow || countRow.count === 0) {
+        const seedInserts = Array.from({ length: 18 }, (_, idx) =>
+          db.prepare('INSERT OR IGNORE INTO inspection_rounds (round_number, status) VALUES (?, ?)')
+            .bind(idx + 1, 'open')
+        );
+        await db.batch(seedInserts);
+      }
+    } catch (seedErr) {}
     return true;
   } catch (e) {
     console.warn('ensureSchema warning:', e.message);
+    return false;
+  }
+}
+
+async function isRoundLocked(db, roundNumber) {
+  if (!db || !roundNumber) return false;
+  try {
+    const row = await db.prepare('SELECT status FROM inspection_rounds WHERE round_number = ?').bind(Number(roundNumber)).first();
+    return row?.status === 'closed';
+  } catch (e) {
     return false;
   }
 }
@@ -376,6 +405,72 @@ export default {
       }
 
       // =======================================================================
+      // 4.5 Inspection Rounds Status & Lock Management Endpoint (/api/rounds, /api/settings/rounds)
+      // =======================================================================
+      if (path === '/api/rounds' || path === '/api/settings/rounds' || path === '/rounds' || path === '/api/rounds/lock') {
+        if (method === 'GET') {
+          let rounds = Array.from({ length: 18 }, (_, i) => ({ round_number: i + 1, status: 'open' }));
+          if (hasD1) {
+            try {
+              const { results = [] } = await db.prepare(
+                'SELECT round_number, status, closed_at, closed_by FROM inspection_rounds ORDER BY round_number ASC'
+              ).all();
+              if (results && results.length > 0) {
+                const map = new Map(results.map((r) => [Number(r.round_number), r]));
+                rounds = Array.from({ length: 18 }, (_, i) => {
+                  const rn = i + 1;
+                  return map.get(rn) || { round_number: rn, status: 'open' };
+                });
+              }
+            } catch (e) {
+              console.warn('[rounds] D1 rounds query notice:', e.message);
+            }
+          }
+          return jsonResponse({ ok: true, rounds });
+        }
+
+        if (method === 'POST' || method === 'PUT') {
+          try {
+            const body = await request.json().catch(() => ({}));
+            const roundNum = parseInt(body.round_number || body.round, 10);
+            if (!roundNum || roundNum < 1 || roundNum > 18) {
+              return jsonResponse({ ok: false, error: 'Invalid round_number (range 1 to 18)' }, 400);
+            }
+            const newStatus = body.status === 'closed' ? 'closed' : 'open';
+            const now = new Date().toISOString();
+
+            if (hasD1) {
+              try {
+                await db.prepare(
+                  `INSERT INTO inspection_rounds (round_number, status, closed_at)
+                   VALUES (?, ?, ?)
+                   ON CONFLICT(round_number) DO UPDATE SET
+                     status = excluded.status,
+                     closed_at = excluded.closed_at`
+                ).bind(roundNum, newStatus, newStatus === 'closed' ? now : null).run();
+
+                await db.prepare(
+                  "INSERT OR REPLACE INTO meta_sync (key, last_change_timestamp, change_counter) VALUES ('surveys', ?, COALESCE((SELECT change_counter + 1 FROM meta_sync WHERE key = 'surveys'), 1))"
+                ).bind(now).run();
+              } catch (dbErr) {
+                console.warn('[rounds/lock] D1 write notice:', dbErr.message);
+              }
+            }
+
+            return jsonResponse({
+              ok: true,
+              round_number: roundNum,
+              status: newStatus,
+              closed_at: newStatus === 'closed' ? now : null,
+              message: `Round ${roundNum} status updated to ${newStatus}`,
+            });
+          } catch (err) {
+            return fatalErrorResponse(err, path, method);
+          }
+        }
+      }
+
+      // =======================================================================
       // 5. Dashboard Polling & Aggregates Endpoint (/api/dashboard)
       // =======================================================================
       if (path === '/api/dashboard' || path === '/dashboard') {
@@ -457,11 +552,18 @@ export default {
               denied,
             };
 
+            let roundLocks = new Map();
+            try {
+              const { results: rRows = [] } = await db.prepare('SELECT round_number, status, closed_at FROM inspection_rounds').all();
+              rRows.forEach((r) => roundLocks.set(Number(r.round_number), r.status));
+            } catch (e) {}
+
             const roundsSummary = Array.from({ length: 18 }, (_, idx) => {
               const rNum = idx + 1;
               const inRound = recent.filter((r) => (r.round_number || 1) === rNum);
               return {
                 round: rNum,
+                status: roundLocks.get(rNum) || 'open',
                 completed: inRound.length,
                 total: totalStations,
                 allowed: inRound.filter((r) => r.permit === 'อนุญาต' || r.permit === 'on').length,
@@ -715,6 +817,35 @@ export default {
           const permit = fields.permit === 'on' ? 'อนุญาต' : (fields.permit || 'ยังไม่ระบุ');
           const roundNumber = parseInt(payload.round_number || fields.round_number || payload.round || fields.round || 1, 10) || 1;
 
+          // Backend Validation Guard: Reject closed rounds with 403 Forbidden
+          if (hasD1) {
+            const isClosed = await isRoundLocked(db, roundNumber);
+            if (isClosed) {
+              return jsonResponse(
+                {
+                  ok: false,
+                  error: 'This inspection round has been closed and cannot be modified',
+                  forbidden: true,
+                  round_number: roundNumber,
+                },
+                403
+              );
+            }
+
+            const existingSurvey = await db.prepare('SELECT round_number FROM surveys WHERE record_id = ?').bind(recordId).first();
+            if (existingSurvey && await isRoundLocked(db, existingSurvey.round_number || 1)) {
+              return jsonResponse(
+                {
+                  ok: false,
+                  error: 'This inspection round has been closed and cannot be modified',
+                  forbidden: true,
+                  round_number: existingSurvey.round_number || 1,
+                },
+                403
+              );
+            }
+          }
+
           // Clean photos metadata — zero Base64 stored in database
           const formattedPhotos = cleanPhotoMetadata(photos, recordId);
 
@@ -901,6 +1032,35 @@ export default {
           const permit = fields.permit === 'on' ? 'อนุญาต' : (fields.permit || 'ยังไม่ระบุ');
           const roundNumber = parseInt(payload.round_number || fields.round_number || payload.round || fields.round || 1, 10) || 1;
 
+          // Backend Validation Guard: Reject closed rounds with 403 Forbidden
+          if (hasD1) {
+            const isClosed = await isRoundLocked(db, roundNumber);
+            if (isClosed) {
+              return jsonResponse(
+                {
+                  ok: false,
+                  error: 'This inspection round has been closed and cannot be modified',
+                  forbidden: true,
+                  round_number: roundNumber,
+                },
+                403
+              );
+            }
+
+            const existingSurvey = await db.prepare('SELECT round_number FROM surveys WHERE record_id = ?').bind(recordId).first();
+            if (existingSurvey && await isRoundLocked(db, existingSurvey.round_number || 1)) {
+              return jsonResponse(
+                {
+                  ok: false,
+                  error: 'This inspection round has been closed and cannot be modified',
+                  forbidden: true,
+                  round_number: existingSurvey.round_number || 1,
+                },
+                403
+              );
+            }
+          }
+
           const formattedPhotos = cleanPhotoMetadata(photos, recordId);
           const cleanFields = {
             ...fields,
@@ -1074,6 +1234,29 @@ export default {
           recordIds = (recordIds || []).filter(Boolean).map(String);
           if (recordIds.length === 0) {
             return jsonResponse({ ok: false, error: 'Missing recordIds for deletion' }, 400);
+          }
+
+          // Backend Validation Guard: Reject deletion of records belonging to closed rounds
+          if (hasD1) {
+            for (const id of recordIds) {
+              const row = await db.prepare('SELECT round_number FROM surveys WHERE record_id = ?').bind(id).first();
+              if (row) {
+                const rn = row.round_number || 1;
+                const isClosed = await isRoundLocked(db, rn);
+                if (isClosed) {
+                  return jsonResponse(
+                    {
+                      ok: false,
+                      error: 'This inspection round has been closed and cannot be modified',
+                      forbidden: true,
+                      round_number: rn,
+                      recordId: id,
+                    },
+                    403
+                  );
+                }
+              }
+            }
           }
 
           let d1Success = false;

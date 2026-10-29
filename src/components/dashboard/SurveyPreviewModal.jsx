@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import { isRoundClosed } from '@/lib/api';
 import { findStationByName } from '@/lib/api';
 
 /**
@@ -469,21 +470,25 @@ export function SurveyPreviewModal({
               {!isUnvisited && onEdit && (
                 <button
                   type="button"
+                  disabled={isLockedRound}
                   onClick={(e) => {
+                    if (isLockedRound) return;
                     e.preventDefault();
                     e.stopPropagation();
                     onEdit(surveyData);
                   }}
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
-                    isDark
-                      ? 'border-amber-500/40 bg-amber-600/20 text-amber-300 hover:bg-amber-600/30 hover:border-amber-400 hover:text-white'
-                      : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-400'
+                    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all shadow-xs',
+                    isLockedRound
+                      ? 'opacity-40 cursor-not-allowed border-slate-700 bg-slate-800/40 text-slate-500'
+                      : isDark
+                      ? 'border-amber-500/40 bg-amber-600/20 text-amber-300 hover:bg-amber-600/30 hover:border-amber-400 hover:text-white cursor-pointer active:scale-95'
+                      : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-400 cursor-pointer active:scale-95'
                   )}
-                  title="แก้ไขข้อมูลการตรวจเยี่ยมนี้"
+                  title={isLockedRound ? 'รอบนี้ถูกปิดรอบแล้ว (Read-Only ไม่อนุญาตให้แก้ไข)' : 'แก้ไขข้อมูลการตรวจเยี่ยมนี้'}
                 >
-                  <Pencil className="h-3.5 w-3.5" />
-                  <span>แก้ไข</span>
+                  {isLockedRound ? <Lock className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                  <span>{isLockedRound ? 'ล็อก' : 'แก้ไข'}</span>
                 </button>
               )}
 
@@ -491,18 +496,22 @@ export function SurveyPreviewModal({
               {!isUnvisited && onDelete && (
                 <button
                   type="button"
+                  disabled={isLockedRound}
                   onClick={(e) => {
+                    if (isLockedRound) return;
                     e.preventDefault();
                     e.stopPropagation();
                     onDelete(surveyData);
                   }}
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
-                    isDark
-                      ? 'border-rose-500/40 bg-rose-600/20 text-rose-300 hover:bg-rose-600/30 hover:border-rose-400 hover:text-white'
-                      : 'border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 hover:border-rose-400'
+                    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all shadow-xs',
+                    isLockedRound
+                      ? 'opacity-40 cursor-not-allowed border-slate-700 bg-slate-800/40 text-slate-500'
+                      : isDark
+                      ? 'border-rose-500/40 bg-rose-600/20 text-rose-300 hover:bg-rose-600/30 hover:border-rose-400 hover:text-white cursor-pointer active:scale-95'
+                      : 'border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 hover:border-rose-400 cursor-pointer active:scale-95'
                   )}
-                  title="ลบรายการตรวจเยี่ยมนี้"
+                  title={isLockedRound ? 'รอบนี้ถูกปิดรอบแล้ว (Read-Only ไม่อนุญาตให้ลบ)' : 'ลบรายการตรวจเยี่ยมนี้'}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   <span>ลบ</span>
@@ -559,6 +568,14 @@ export function SurveyPreviewModal({
               isDark ? 'bg-gradient-to-b from-slate-900/60 to-slate-950' : 'bg-slate-100/60'
             )}
           >
+            {isLockedRound && (
+              <div className="rounded-xl border border-rose-500/40 bg-rose-500/15 p-3.5 flex items-center gap-2.5 text-rose-300 animate-fade-in shadow-xs">
+                <Lock className="h-4 w-4 shrink-0 text-rose-400" />
+                <span className="text-xs font-semibold">
+                  รอบการตรวจเยี่ยมครั้งที่ {roundNum} ถูกปิดรอบแล้ว (Closed & Locked — Read-Only) ข้อมูลทั้งหมดถูกล็อกความปลอดภัยและไม่อนุญาตให้แก้ไขหรือลบ
+                </span>
+              </div>
+            )}
             {/* Section 1: Station & Location Details */}
             <div className={sectionCardClass}>
               <h4 className={sectionTitleClass}>

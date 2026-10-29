@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
-import { Layers, CheckCircle2, Clock, AlertCircle, ChevronRight, BarChart3 } from 'lucide-react';
+import { Layers, CheckCircle2, Clock, AlertCircle, ChevronRight, BarChart3, Lock } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import { isRoundClosed } from '@/lib/api';
 
 export function MultiRoundOverview({
   surveys = [],
@@ -31,6 +32,7 @@ export function MultiRoundOverview({
       const missing = Math.max(totalStations - completed, 0);
       const percentage = totalStations > 0 ? (completed / totalStations) * 100 : 0;
       const isComplete = completed >= totalStations && totalStations > 0;
+      const isLocked = isRoundClosed(roundNum);
 
       return {
         roundNum,
@@ -40,6 +42,7 @@ export function MultiRoundOverview({
         missing,
         percentage,
         isComplete,
+        isLocked,
       };
     });
   }, [surveys, totalStations]);
@@ -118,7 +121,9 @@ export function MultiRoundOverview({
                 <span className="text-xs font-bold font-mono">
                   รอบ {rm.roundNum}
                 </span>
-                {rm.isComplete ? (
+                {rm.isLocked ? (
+                  <Lock className="h-3.5 w-3.5 text-rose-400 shrink-0" title="ปิดรอบแล้ว (Read-Only)" />
+                ) : rm.isComplete ? (
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                 ) : rm.completed > 0 ? (
                   <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0 animate-pulse" />
@@ -142,11 +147,15 @@ export function MultiRoundOverview({
                   <span className="text-xs font-normal opacity-50">/{totalStations}</span>
                 </div>
                 <div className="text-[10px] font-medium opacity-70">
-                  {rm.isComplete
-                    ? 'ครบ 100%'
-                    : rm.completed > 0
-                    ? `ขาด ${rm.missing} สถานี`
-                    : 'ยังไม่เริ่ม'}
+                  {rm.isLocked ? (
+                    <span className="text-rose-400 font-semibold">ปิดรอบแล้ว (Read-Only)</span>
+                  ) : rm.isComplete ? (
+                    'ครบ 100%'
+                  ) : rm.completed > 0 ? (
+                    `ขาด ${rm.missing} สถานี`
+                  ) : (
+                    'ยังไม่เริ่ม'
+                  )}
                 </div>
               </div>
 
@@ -155,7 +164,9 @@ export function MultiRoundOverview({
                 <div
                   className={cn(
                     'h-full rounded-full transition-all duration-500',
-                    rm.isComplete
+                    rm.isLocked
+                      ? 'bg-rose-500'
+                      : rm.isComplete
                       ? 'bg-emerald-500'
                       : rm.completed > 0
                       ? 'bg-amber-500'

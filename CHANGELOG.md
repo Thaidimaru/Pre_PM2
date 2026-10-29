@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.0] - 2026-10-29
+
+### Added
+- **ระบบล็อกรอบการตรวจเยี่ยมใน System Settings และการป้องกัน Read-Only รอบที่ปิดแล้ว (Round Locking & Read-Only Protection)**:
+  - **การจัดการสถานะและล็อกรอบใน System Settings (`src/components/settings/SettingsModal.jsx`)**:
+    - เพิ่มแท็บ "สถานะและล็อกรอบตรวจเยี่ยม (Rounds 1–18)" ภายในการตั้งค่าระบบที่ได้รับการป้องกันด้วยรหัสผ่านความปลอดภัย (`Welcomw@01`)
+    - แสดงรายการสรุปความคืบหน้าของรอบการตรวจเยี่ยมทั้ง 18 รอบ (ความคืบหน้า X/197 สถานี พร้อมหลอดเปอร์เซ็นต์และป้ายสถานะ)
+    - เพิ่มปุ่ม Action "ปิดรอบ (Lock Round)" สำหรับผู้ดูแลระบบ โดยบังคับเงื่อนไขต้องตรวจเยี่ยมครบ 197 สถานีของรอบนั้นก่อนจึงจะสามารถกดปิดรอบได้
+    - รองรับปุ่ม "ปลดล็อกรอบ (Re-open Round)" เพื่อเปิดรอบให้แก้ไขได้อีกครั้งในกรณีจำเป็น
+    - บันทึกและซิงค์สถานะรอบ (`open` / `closed`) ไปยังฐานข้อมูลกลาง Cloudflare D1 / SQLite (`schema.sql`, `migrations/0004_create_inspection_rounds.sql`, `worker/index.js`, `database.py`) และแคชในฝั่ง Client API (`nbtc_inspection_rounds_status`)
+  - **การบังคับใช้สถานะอ่านอย่างเดียว (Read-Only Enforcement) สำหรับรอบที่ปิดแล้ว**:
+    - ตรึงข้อมูลรายการตรวจเยี่ยมทั้งหมดที่อยู่ในรอบที่ปิดแล้วให้อยู่ในสถานะ Read-Only
+    - ปิดการใช้งานปุ่ม "แก้ไข" และ "ลบ" ในตารางประวัติการตรวจเยี่ยม (`src/components/dashboard/RecentSurveys.jsx`) พร้อมแสดงป้ายสถานะ `Locked`
+    - ปิดการใช้งานปุ่มเลือก Checkbox ประจำแถวสำหรับรายการในรอบที่ปิดแล้ว เพื่อป้องกันการถูกเลือกไปลบแบบกลุ่ม (Batch Delete)
+    - ปิดการใช้งานปุ่มแก้ไขและลบในหน้ารายละเอียดสถานี (`src/components/dashboard/SurveyPreviewModal.jsx`) พร้อมแสดงแถบเตือนสถานะล็อก Read-Only
+    - แสดงไอคอนล็อก (`Lock`) และป้ายสถานะ "ปิดรอบแล้ว (Read-Only)" บนการ์ดรอบใน `MultiRoundOverview.jsx`
+  - **การกรองรอบแบบไดนามิกในแบบฟอร์มตรวจเยี่ยม (`src/components/field/FieldVisitView.jsx`)**:
+    - กรองและซ่อนรอบที่ปิดแล้วออกจาก Dropdown "รอบการตรวจเยี่ยม (Inspection Round)" โดยอัตโนมัติ เพื่อป้องกันผู้สำรวจเลือกรอบที่ถูกปิดไปแล้ว
+    - ปรับการเลือกรอบเริ่มต้นอัตโนมัติให้ชี้ไปยังรอบแรกที่ยังเปิดอยู่ (เช่น ขยับไปครั้งที่ 2 เมื่อครั้งที่ 1 ถูกปิดรอบ)
+    - กรณีเปิดดูข้อมูลย้อนหลังจากรอบที่ปิดแล้ว: แสดงแถบเตือนความปลอดภัย "รอบการตรวจเยี่ยมนี้ถูกปิดรอบแล้ว (Read-Only)" และปิดการใช้งานปุ่มส่งฟอร์มเพื่อป้องกันการบันทึกทับ
+  - **Backend Validation Guard ป้องกันการดัดแปลงข้อมูลระดับเซิร์ฟเวอร์**:
+    - ป้องกันที่ Cloudflare Worker Edge API (`worker/index.js`) และ Local Python Server (`database.py`): ตรวจสอบ `round_number` ในคำขอ `POST /api/save`, `POST /api/update`, `POST /api/delete`, `DELETE /api/survey/<id>` หากรอบนั้นถูกปิดแล้ว ระบบจะปฏิเสธคำขอทันทีด้วยรหัส `HTTP 403 Forbidden` (`"This inspection round has been closed and cannot be modified"`)
+
 ## [2.16.0] - 2026-10-29
 
 ### Added

@@ -5,7 +5,11 @@ import {
   Shield,
   ShieldCheck,
   Lock,
+  Unlock,
   KeyRound,
+  Layers,
+  Clock,
+  CheckCircle2,
   Eye,
   EyeOff,
   AlertCircle,
@@ -23,7 +27,10 @@ import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import {
   fetchOneDriveStatus,
-  fetchDashboardData
+  fetchDashboardData,
+  fetchRoundStatuses,
+  updateRoundLockStatus,
+  getCachedRoundStatuses
 } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 
@@ -39,6 +46,71 @@ export function SettingsModal({ isOpen, onClose, initialTab, onGitHubUpdated }) 
   const [showPasscode, setShowPasscode] = useState(false);
   const [passcodeError, setPasscodeError] = useState('');
   const [isShaking, setIsShaking] = useState(false);
+
+  // Tab navigation & Round management states
+  const [activeTab, setActiveTab] = useState('rounds'); // 'rounds' | 'onedrive'
+  const [roundsSummary, setRoundsSummary] = useState([]);
+  const [loadingRounds, setLoadingRounds] = useState(false);
+  const [togglingRound, setTogglingRound] = useState(null);
+
+  const loadRoundsData = async () => {
+    setLoadingRounds(true);
+    try {
+      const [dash, rounds] = await Promise.all([
+        fetchDashboardData({ force: true }).catch(() => null),
+        fetchRoundStatuses().catch(() => []),
+      ]);
+
+      const roundStatusMap = new Map((rounds || []).map((r) => [Number(r.round_number), r.status]));
+      const roundCounts = new Map();
+      (dash?.recent || []).forEach((s) => {
+        const rn = Number(s.round_number || s.fields?.round_number || 1) || 1;
+        roundCounts.set(rn, (roundCounts.get(rn) || 0) + 1);
+      });
+
+      const totalStations = dash?.stats?.stations || 197;
+      const computed = Array.from({ length: 18 }, (_, idx) => {
+        const roundNum = idx + 1;
+        const completed = roundCounts.get(roundNum) || 0;
+        const status = roundStatusMap.get(roundNum) || 'open';
+        return {
+          round_number: roundNum,
+          completed,
+          total: totalStations,
+          status,
+          canLock: completed >= totalStations,
+        };
+      });
+      setRoundsSummary(computed);
+    } catch (e) {
+      console.warn('Failed to load rounds data:', e);
+    } finally {
+      setLoadingRounds(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isUnlocked) {
+      loadRoundsData();
+    }
+  }, [isUnlocked]);
+
+  const handleToggleRoundLock = async (roundNumber, newStatus) => {
+    setTogglingRound(roundNumber);
+    try {
+      await updateRoundLockStatus(roundNumber, newStatus);
+      toast.success(
+        newStatus === 'closed'
+          ? `ปิดรอบการตรวจเยี่ยมครั้งที่ ${roundNumber} เรียบร้อยแล้ว (ล็อก Read-Only)`
+          : `ปลดล็อกรอบการตรวจเยี่ยมครั้งที่ ${roundNumber} เรียบร้อยแล้ว`
+      );
+      await loadRoundsData();
+    } catch (e) {
+      toast.error('ไม่สามารถเปลี่ยนสถานะรอบได้: ' + (e.message || ''));
+    } finally {
+      setTogglingRound(null);
+    }
+  };
 
   // OneDrive states
   const [oneDriveStatus, setOneDriveStatus] = useState(null);
@@ -159,7 +231,7 @@ export function SettingsModal({ isOpen, onClose, initialTab, onGitHubUpdated }) 
         <Dialog.Content
           className={cn(
             'fixed left-1/2 top-1/2 z-50 w-[95vw] -translate-x-1/2 -translate-y-1/2 rounded-2xl border shadow-2xl transition-all duration-200 focus:outline-none',
-            isUnlocked ? 'max-w-2xl' : 'max-w-md',
+            isUnlocked ? 'max-w-3xl' : 'max-w-md',
             isDark
               ? 'border-blue-500/30 bg-[#061428] text-white shadow-[0_20px_60px_rgba(0,0,0,0.7)]'
               : 'border-slate-200 bg-white text-slate-800 shadow-2xl'
@@ -328,7 +400,7 @@ export function SettingsModal({ isOpen, onClose, initialTab, onGitHubUpdated }) 
                       </span>
                     </div>
                     <Dialog.Description className="text-xs text-slate-400 mt-0.5">
-                      จัดการศูนย์ข้อมูล Microsoft OneDrive
+                      จัดการสถานะล็อกรอบการตรวจเยี่ยม (Rounds 1–18) และ Microsoft OneDrive
                     </Dialog.Description>
                   </div>
                 </div>
@@ -346,8 +418,203 @@ export function SettingsModal({ isOpen, onClose, initialTab, onGitHubUpdated }) 
                 </button>
               </div>
 
-              {/* Direct Microsoft OneDrive Content */}
-              <div className="mt-4 space-y-4 animate-fade-in">
+              {/* Navigation Tabs */}
+              <div className="flex items-center gap-2 mt-4 pb-3 border-b border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('rounds')}
+                  className={cn(
+                    'flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer',
+                    activeTab === 'rounds'
+                      ? isDark
+                        ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 shadow-xs'
+                        : 'bg-sky-100 text-sky-800 border border-sky-300 shadow-xs'
+                      : isDark
+                      ? 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  )}
+                >
+                  <Layers className="h-4 w-4" />
+                  <span>สถานะและล็อกรอบตรวจเยี่ยม (Rounds 1–18)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('onedrive')}
+                  className={cn(
+                    'flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer',
+                    activeTab === 'onedrive'
+                      ? isDark
+                        ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-xs'
+                        : 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs'
+                      : isDark
+                      ? 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  )}
+                >
+                  <HardDrive className="h-4 w-4" />
+                  <span>Microsoft OneDrive</span>
+                </button>
+              </div>
+
+              {/* TAB 1: ROUND STATUS MANAGEMENT & LOCKING */}
+              {activeTab === 'rounds' && (
+                <div className="mt-4 space-y-4 animate-fade-in">
+                  {/* Round Locking Policy Banner */}
+                  <div
+                    className={cn(
+                      'rounded-xl border p-4 space-y-2',
+                      isDark
+                        ? 'border-cyan-500/30 bg-cyan-950/20 text-cyan-200'
+                        : 'border-sky-200 bg-sky-50/70 text-sky-900'
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Lock className="h-4 w-4 text-cyan-400" />
+                        <span className="text-xs font-bold uppercase tracking-wider">
+                          นโยบายล็อกรอบการตรวจเยี่ยม (Round Lock Policy)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-2 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-400 font-semibold">
+                          ปิดรอบแล้ว: {roundsSummary.filter((r) => r.status === 'closed').length} รอบ
+                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-semibold">
+                          เปิดอยู่: {roundsSummary.filter((r) => r.status === 'open').length} รอบ
+                        </span>
+                      </div>
+                    </div>
+                    <p className={cn('text-xs leading-relaxed', isDark ? 'text-slate-300' : 'text-slate-600')}>
+                      เมื่อรอบการตรวจเยี่ยมลงพื้นที่ครบ 197 สถานีแล้ว ผู้ดูแลระบบสามารถกด <strong className="font-semibold text-rose-400">"ปิดรอบ (Lock Round)"</strong> เพื่อล็อกข้อมูลทั้งหมดในรอบนั้นเป็นสถานะ Read-Only ทันที และระบบจะซ่อนรอบที่ปิดแล้วออกจากแบบฟอร์มบันทึกข้อมูลภาคสนามโดยอัตโนมัติ
+                    </p>
+                  </div>
+
+                  {/* 18 Rounds List */}
+                  <div className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-1">
+                    {roundsSummary.map((round) => {
+                      const isClosed = round.status === 'closed';
+                      const isComplete = round.completed >= round.total;
+                      const percentage = Math.round((round.completed / round.total) * 100);
+                      const isToggling = togglingRound === round.round_number;
+
+                      return (
+                        <div
+                          key={round.round_number}
+                          className={cn(
+                            'flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border transition-all',
+                            isClosed
+                              ? isDark
+                                ? 'border-rose-500/30 bg-rose-950/15'
+                                : 'border-rose-200 bg-rose-50/50'
+                              : isDark
+                              ? 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
+                              : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
+                          )}
+                        >
+                          {/* Round Info & Status Badge */}
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-sm">
+                                รอบการตรวจเยี่ยมครั้งที่ {round.round_number}
+                              </span>
+                              {isClosed ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-rose-500/40 bg-rose-500/15 text-rose-400">
+                                  <Lock className="h-3 w-3" />
+                                  <span>ปิดรอบแล้ว (Read-Only)</span>
+                                </span>
+                              ) : isComplete ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-emerald-500/40 bg-emerald-500/15 text-emerald-400">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  <span>ครบ 197 สถานี (พร้อมปิดรอบ)</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border border-slate-700 bg-slate-800/40 text-slate-300">
+                                  <Clock className="h-3 w-3 text-amber-400" />
+                                  <span>เปิดอยู่ (กำลังดำเนินการ)</span>
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Progress bar and Station Count */}
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden max-w-xs">
+                                <div
+                                  className={cn(
+                                    'h-full rounded-full transition-all duration-300',
+                                    isClosed
+                                      ? 'bg-rose-500'
+                                      : isComplete
+                                      ? 'bg-emerald-500'
+                                      : 'bg-amber-500'
+                                  )}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-mono font-medium opacity-80 shrink-0">
+                                {round.completed} / {round.total} สถานี ({percentage}%)
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Action Button */}
+                          <div className="shrink-0 flex items-center justify-end">
+                            {isClosed ? (
+                              <button
+                                type="button"
+                                disabled={isToggling}
+                                onClick={() => handleToggleRoundLock(round.round_number, 'open')}
+                                className={cn(
+                                  'inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
+                                  isDark
+                                    ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-600/30 hover:border-emerald-400 hover:text-white'
+                                    : 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-400'
+                                )}
+                                title="ปลดล็อกเพื่อให้สามารถบันทึกหรือแก้ไขข้อมูลในรอบนี้ได้อีกครั้ง"
+                              >
+                                {isToggling ? (
+                                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Unlock className="h-3.5 w-3.5" />
+                                )}
+                                <span>ปลดล็อกรอบ (Re-open)</span>
+                              </button>
+                            ) : round.canLock ? (
+                              <button
+                                type="button"
+                                disabled={isToggling}
+                                onClick={() => handleToggleRoundLock(round.round_number, 'closed')}
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-600/20 text-rose-300 hover:bg-rose-600/35 hover:border-rose-400 hover:text-white px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                                title="ลงพื้นที่ครบ 197 สถานีแล้ว สามารถปิดรอบเพื่อล็อกข้อมูลเป็น Read-Only"
+                              >
+                                {isToggling ? (
+                                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Lock className="h-3.5 w-3.5" />
+                                )}
+                                <span>ปิดรอบ (Lock Round)</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/40 text-slate-500 px-3.5 py-1.5 text-xs font-medium cursor-not-allowed opacity-60"
+                                title="ต้องลงพื้นที่ครบ 197 สถานีก่อนจึงจะสามารถปิดรอบได้"
+                              >
+                                <Lock className="h-3.5 w-3.5" />
+                                <span>ปิดรอบ (ต้องการ 197 สถานี)</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: DIRECT MICROSOFT ONEDRIVE CONTENT */}
+              {activeTab === 'onedrive' && (
+                <div className="mt-4 space-y-4 animate-fade-in">
                 {/* Account & Status Overview Card */}
                 <div
                   className={cn(
@@ -493,6 +760,7 @@ export function SettingsModal({ isOpen, onClose, initialTab, onGitHubUpdated }) 
                   </button>
                 </div>
               </div>
+              )}
 
               {/* Bottom Complete / Close Button */}
               <div className="mt-6 pt-3 border-t border-white/10 flex items-center justify-between">
