@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {
   X,
   Radio as RadioIcon,
@@ -153,32 +153,6 @@ export function SurveyPreviewModal({
       if (controller) controller.abort();
     };
   }, [isOpen, recordId, isUnvisited]);
-
-  // Escape key to close modal
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        if (activePhoto) {
-          setActivePhoto(null);
-        } else {
-          onClose();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, activePhoto]);
-
-  // Prevent background body scroll when modal is open
-  useEffect(() => {
-    if (!isOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -344,688 +318,724 @@ export function SurveyPreviewModal({
     });
   };
 
-  const modalContent = (
-    <div
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-md overflow-y-auto"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="preview-modal-title"
-    >
-      {/* Modal Container */}
-      <div
-        className={cn(
-          'relative flex max-h-[92vh] w-full max-w-4xl flex-col rounded-2xl border shadow-2xl overflow-hidden my-auto transition-colors',
-          isDark
-            ? 'border-blue-500/30 bg-slate-900 text-slate-200'
-            : 'border-slate-300 bg-white text-slate-800 shadow-xl'
-        )}
-      >
-        {/* Header */}
-        <div
+  return (
+    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogPrimitive.Portal>
+        {/* Backdrop Overlay */}
+        <DialogPrimitive.Overlay
           className={cn(
-            'flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b px-4 sm:px-6 py-3.5 shrink-0 transition-colors',
-            isDark ? 'border-slate-800 bg-slate-950/90' : 'border-slate-200 bg-slate-50'
+            'fixed inset-0 z-[70] bg-black/80 backdrop-blur-md transition-all duration-200 pointer-events-auto',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0'
+          )}
+        />
+
+        {/* Modal Dialog Content */}
+        <DialogPrimitive.Content
+          aria-describedby="preview-modal-description"
+          className={cn(
+            'fixed left-1/2 top-1/2 z-[70] -translate-x-1/2 -translate-y-1/2 pointer-events-auto',
+            'flex flex-col w-[96vw] max-w-4xl max-h-[90vh] rounded-2xl border shadow-2xl overflow-hidden duration-200',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+            isDark
+              ? 'border-blue-500/30 bg-slate-900 text-slate-200 shadow-[0_0_50px_rgba(0,0,0,0.8)]'
+              : 'border-slate-300 bg-white text-slate-800 shadow-2xl'
           )}
         >
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className={cn(
-                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border',
-                isUnvisited
-                  ? isDark
-                    ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
-                    : 'bg-purple-100 text-purple-700 border-purple-200'
-                  : isDark
-                    ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
-                    : 'bg-sky-100 text-sky-600 border-sky-200'
-              )}
-            >
-              <RadioIcon className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 id="preview-modal-title" className={cn('text-base font-bold truncate', isDark ? 'text-white' : 'text-slate-900')}>
-                  {stationName}
-                </h3>
-                {siteId && (
-                  <span
-                    className={cn(
-                      'inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[11px] font-semibold border',
-                      isDark
-                        ? 'bg-slate-800/90 border-slate-700 text-slate-300'
-                        : 'bg-slate-100 border-slate-300 text-slate-700'
-                    )}
-                  >
-                    {siteId}
-                  </span>
-                )}
-                {isUnvisited ? (
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold border',
-                      isDark
-                        ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
-                        : 'bg-purple-50 border-purple-300 text-purple-800'
-                    )}
-                  >
-                    <Clock className="h-3 w-3" />
-                    <span>ยังไม่ได้ลงพื้นที่ / รอตรวจ</span>
-                  </span>
-                ) : (
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold border',
-                      isPermitted
-                        ? isDark
-                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                          : 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                        : isDark
-                          ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
-                          : 'bg-rose-50 border-rose-300 text-rose-700'
-                    )}
-                  >
-                    {isPermitted ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                    <span>{isPermitted ? 'อนุญาตเข้าพื้นที่' : 'ไม่อนุญาต'}</span>
-                  </span>
-                )}
-              </div>
-
-              {isUnvisited ? (
-                <div className={cn('flex items-center gap-2 text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
-                  <span>สถานะ:</span>
-                  <span className={cn('font-semibold', isDark ? 'text-purple-300' : 'text-purple-700')}>รอการลงพื้นที่ตรวจเยี่ยมภาคสนาม</span>
-                </div>
-              ) : (
-                <div className={cn('flex items-center gap-2 text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
-                  <span>รหัสรายการ:</span>
-                  <span className={cn('font-mono font-semibold', isDark ? 'text-cyan-400' : 'text-sky-600')}>{recordId}</span>
-                  <button
-                    type="button"
-                    onClick={handleCopyRecordId}
-                    className={cn('p-1 transition-colors cursor-pointer', isDark ? 'hover:text-white' : 'hover:text-slate-900')}
-                    title="คัดลอกรหัสรายการ"
-                  >
-                    {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-            {/* Quick Action for Unvisited Station */}
-            {isUnvisited && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  if (onStartSurvey) onStartSurvey(surveyData);
-                  else if (onEdit) onEdit(surveyData);
-                }}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
-                  isDark
-                    ? 'border-purple-500/40 bg-purple-600/25 text-purple-300 hover:bg-purple-600/40 hover:border-purple-400 hover:text-white'
-                    : 'border-purple-300 bg-purple-50 text-purple-800 hover:bg-purple-100 hover:border-purple-400'
-                )}
-                title="เริ่มลงพื้นที่สำรวจสถานีนี้"
-              >
-                <ArrowRight className="h-3.5 w-3.5" />
-                <span>เริ่มลงพื้นที่</span>
-              </button>
+          {/* Header */}
+          <div
+            className={cn(
+              'flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b px-4 sm:px-6 py-3.5 shrink-0 transition-colors',
+              isDark ? 'border-slate-800 bg-slate-950/90' : 'border-slate-200 bg-slate-50'
             )}
-
-            {/* Edit Button for Surveyed Station */}
-            {!isUnvisited && onEdit && (
-              <button
-                type="button"
-                onClick={() => onEdit(surveyData)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
-                  isDark
-                    ? 'border-amber-500/40 bg-amber-600/20 text-amber-300 hover:bg-amber-600/30 hover:border-amber-400 hover:text-white'
-                    : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-400'
-                )}
-                title="แก้ไขข้อมูลการตรวจเยี่ยมนี้"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                <span>แก้ไข</span>
-              </button>
-            )}
-
-            {/* Delete Button for Surveyed Station */}
-            {!isUnvisited && onDelete && (
-              <button
-                type="button"
-                onClick={() => onDelete(surveyData)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
-                  isDark
-                    ? 'border-rose-500/40 bg-rose-600/20 text-rose-300 hover:bg-rose-600/30 hover:border-rose-400 hover:text-white'
-                    : 'border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 hover:border-rose-400'
-                )}
-                title="ลบรายการตรวจเยี่ยมนี้"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span>ลบ</span>
-              </button>
-            )}
-
-            {/* Official Report A4 Modal Button for Surveyed Station */}
-            {!isUnvisited && onOpenOfficialReport && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenOfficialReport(surveyData);
-                }}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
-                  isDark
-                    ? 'border-blue-500/30 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 hover:border-blue-400 hover:text-white'
-                    : 'border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-400'
-                )}
-                title="เปิดแบบรายงานการตรวจเยี่ยมทางการขนาด A4"
-              >
-                <Printer className="h-3.5 w-3.5" />
-                <span>รายงาน A4</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={onClose}
-              className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-xl border transition-colors cursor-pointer',
-                isDark
-                  ? 'border-slate-700 bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-                  : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-              )}
-              title="ปิดหน้าต่าง (Esc)"
-              aria-label="ปิดหน้าต่าง"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Scrollable Content Body */}
-        <div
-          className={cn(
-            'flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 transition-colors',
-            isDark ? 'bg-gradient-to-b from-slate-900/60 to-slate-950' : 'bg-slate-100/60'
-          )}
-        >
-          {/* Section 1: Station & Location Details */}
-          <div className={sectionCardClass}>
-            <h4 className={sectionTitleClass}>
-              <MapPin className={cn('h-4 w-4', sectionIconClass)} />
-              <span>1. ข้อมูลสถานีและสถานที่ติดตั้ง (Station & Location)</span>
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>ชื่อสถานี</span>
-                <span className={cn('font-semibold text-sm', valBoldClass)}>{stationName}</span>
-              </div>
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>สถานที่วางเครื่อง</span>
-                <span className={cn('font-medium', valMediumClass)}>{equipmentPlace}</span>
-              </div>
-              <div className="md:col-span-2">
-                <span className={cn('block mb-0.5', labelClass)}>สถานที่ติดตั้ง</span>
-                <span className={cn('font-medium', valMediumClass)}>{fullLocation}</span>
-              </div>
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>วันที่ตรวจเยี่ยม</span>
-                <span className={cn('font-medium flex items-center gap-1.5', valMediumClass)}>
-                  <Calendar className={cn('h-3.5 w-3.5', labelClass)} />
-                  {visitDateStr}
-                </span>
-              </div>
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>เวลาที่ตรวจเยี่ยม</span>
-                <span className={cn('font-medium flex items-center gap-1.5', valMediumClass)}>
-                  <Clock className={cn('h-3.5 w-3.5', labelClass)} />
-                  {visitTime}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: Contact & Permission Details */}
-          <div className={sectionCardClass}>
-            <h4 className={sectionTitleClass}>
-              <User className={cn('h-4 w-4', sectionIconClass)} />
-              <span>2. ข้อมูลผู้ให้ข้อมูล / ผู้ประสานงาน และสิทธิ์การเข้าพื้นที่ (Coordinator & Permission)</span>
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>ชื่อ - สกุล ผู้ประสานงาน</span>
-                <span className={cn('font-semibold text-sm', valBoldClass)}>{contactName}</span>
-              </div>
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>ตำแหน่ง</span>
-                <span className={cn('font-medium', valMediumClass)}>{contactPosition}</span>
-              </div>
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>หน่วยงาน / หมู่บ้าน</span>
-                <span className={cn('font-medium', valMediumClass)}>{contactVillage}</span>
-              </div>
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>เบอร์โทรศัพท์ติดต่อ</span>
-                {contactPhone && contactPhone !== '-' ? (
-                  <a
-                    href={`tel:${contactPhone.replace(/\s+/g, '')}`}
-                    className={cn('font-mono hover:underline flex items-center gap-1 font-semibold', isDark ? 'text-cyan-400' : 'text-sky-600')}
-                    title="คลิกเพื่อโทรออก"
-                  >
-                    <Phone className="h-3.5 w-3.5" />
-                    {contactPhone}
-                  </a>
-                ) : (
-                  <span className="text-slate-500">-</span>
-                )}
-              </div>
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>สถานะการขออนุญาตเข้าพื้นที่</span>
-                {isUnvisited ? (
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5 font-semibold px-2.5 py-0.5 rounded-lg text-xs border',
-                      isDark ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' : 'bg-purple-50 text-purple-800 border-purple-200'
-                    )}
-                  >
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>ยังไม่ได้ขออนุญาต / รอตรวจ</span>
-                  </span>
-                ) : (
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5 font-semibold px-2.5 py-0.5 rounded-lg text-xs border',
-                      isPermitted
-                        ? isDark
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                        : isDark
-                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                          : 'bg-rose-50 text-rose-800 border-rose-200'
-                    )}
-                  >
-                    {isPermitted ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
-                    <span>{isPermitted ? 'อนุญาตให้เข้าพื้นที่' : 'ไม่อนุญาตให้เข้าพื้นที่'}</span>
-                  </span>
-                )}
-              </div>
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>ข้อจำกัดในการเข้าพื้นที่</span>
-                <span className={cn('font-medium', valMediumClass)}>{accessLimit}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Conditional View: Clean Empty State for Unvisited OR Full Assessment for Surveyed */}
-          {isUnvisited ? (
-            /* Clean Empty State Card for Unvisited Station */
-            <div
-              className={cn(
-                'rounded-2xl border p-6 sm:p-8 text-center space-y-4 my-2 transition-colors shadow-sm',
-                isDark
-                  ? 'bg-purple-950/20 border-purple-500/30 text-slate-200'
-                  : 'bg-purple-50/80 border-purple-200 text-slate-800'
-              )}
-            >
+          >
+            <div className="flex items-center gap-3 min-w-0">
               <div
                 className={cn(
-                  'inline-flex p-3.5 rounded-2xl border mx-auto',
-                  isDark
-                    ? 'bg-purple-500/20 border-purple-500/30 text-purple-300'
-                    : 'bg-purple-100 border-purple-200 text-purple-700'
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border',
+                  isUnvisited
+                    ? isDark
+                      ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                      : 'bg-purple-100 text-purple-700 border-purple-200'
+                    : isDark
+                      ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+                      : 'bg-sky-100 text-sky-600 border-sky-200'
                 )}
               >
-                <Clock className="h-8 w-8" />
+                <RadioIcon className="h-5 w-5" />
               </div>
-              <div className="max-w-md mx-auto space-y-1.5">
-                <h4 className={cn('text-base sm:text-lg font-bold', isDark ? 'text-white' : 'text-slate-900')}>
-                  ยังไม่มีประวัติการบันทึกข้อมูลการตรวจเยี่ยมภาคสนาม
-                </h4>
-                <p className={cn('text-xs sm:text-sm leading-relaxed', isDark ? 'text-slate-400' : 'text-slate-600')}>
-                  สถานี <strong className={isDark ? 'text-white' : 'text-slate-900'}>{stationName}</strong> อยู่ในทะเบียนสถานีวิทยุคมนาคมระบบ Pre-PM เรียบร้อยแล้ว แต่ยังไม่ได้ลงพื้นที่ตรวจเยี่ยมเจ้าของพื้นที่และตรวจสอบสภาพระบบอุปกรณ์
-                </p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <DialogPrimitive.Title asChild>
+                    <h3 id="preview-modal-title" className={cn('text-base font-bold truncate', isDark ? 'text-white' : 'text-slate-900')}>
+                      {stationName}
+                    </h3>
+                  </DialogPrimitive.Title>
+                  {siteId && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[11px] font-semibold border',
+                        isDark
+                          ? 'bg-slate-800/90 border-slate-700 text-slate-300'
+                          : 'bg-slate-100 border-slate-300 text-slate-700'
+                      )}
+                    >
+                      {siteId}
+                    </span>
+                  )}
+                  {isUnvisited ? (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold border',
+                        isDark
+                          ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
+                          : 'bg-purple-50 border-purple-300 text-purple-800'
+                      )}
+                    >
+                      <Clock className="h-3 w-3" />
+                      <span>ยังไม่ได้ลงพื้นที่ / รอตรวจ</span>
+                    </span>
+                  ) : (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold border',
+                        isPermitted
+                          ? isDark
+                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                            : 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                          : isDark
+                            ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
+                            : 'bg-rose-50 border-rose-300 text-rose-700'
+                      )}
+                    >
+                      {isPermitted ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                      <span>{isPermitted ? 'อนุญาตเข้าพื้นที่' : 'ไม่อนุญาต'}</span>
+                    </span>
+                  )}
+                </div>
+
+                {isUnvisited ? (
+                  <div className={cn('flex items-center gap-2 text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                    <span>สถานะ:</span>
+                    <span className={cn('font-semibold', isDark ? 'text-purple-300' : 'text-purple-700')}>รอการลงพื้นที่ตรวจเยี่ยมภาคสนาม</span>
+                  </div>
+                ) : (
+                  <div className={cn('flex items-center gap-2 text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                    <span>รหัสรายการ:</span>
+                    <span className={cn('font-mono font-semibold', isDark ? 'text-cyan-400' : 'text-sky-600')}>{recordId}</span>
+                    <button
+                      type="button"
+                      onClick={handleCopyRecordId}
+                      className={cn('p-1 transition-colors cursor-pointer', isDark ? 'hover:text-white' : 'hover:text-slate-900')}
+                      title="คัดลอกรหัสรายการ"
+                    >
+                      {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="pt-2">
+            </div>
+
+            <DialogPrimitive.Description id="preview-modal-description" className="sr-only">
+              {isUnvisited ? `ข้อมูลสถานี ${stationName} รอการลงพื้นที่ตรวจเยี่ยม` : `รายละเอียดผลการตรวจเยี่ยมสถานี ${stationName} รหัส ${recordId}`}
+            </DialogPrimitive.Description>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              {/* Quick Action for Unvisited Station */}
+              {isUnvisited && (
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     onClose();
                     if (onStartSurvey) onStartSurvey(surveyData);
                     else if (onEdit) onEdit(surveyData);
                   }}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-500/25 active:scale-95 transition-all cursor-pointer"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                  <span>เริ่มลงพื้นที่สำรวจสถานีนี้ (Start Field Visit)</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Section 3: Equipment Assessment */}
-              <div className={sectionCardClass}>
-                <h4 className={sectionTitleClass}>
-                  <ShieldCheck className={cn('h-4 w-4', sectionIconClass)} />
-                  <span>3. บันทึกผลการตรวจสอบและประเมินสภาพระบบอุปกรณ์ (Equipment & Operational Assessment)</span>
-                </h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead>
-                      <tr className={cn('border-b text-xs font-semibold', isDark ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-600')}>
-                        <th className="py-2 px-2.5">รายการประเมิน</th>
-                        <th className="py-2 px-2.5 text-center">สถานะ</th>
-                        <th className="py-2 px-2.5">รายละเอียด / ข้อสังเกต</th>
-                      </tr>
-                    </thead>
-                    <tbody className={cn('divide-y', isDark ? 'divide-slate-800/60' : 'divide-slate-200')}>
-                      <tr>
-                        <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>1. สภาพการทำงานของเครื่องวิทยุคมนาคม</td>
-                        <td className="py-2 px-2.5 text-center">
-                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isRadioNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
-                            {isRadioNormal ? 'ปกติ' : 'ไม่ปกติ'}
-                          </span>
-                        </td>
-                        <td className={cn('py-2 px-2.5', labelClass)}>{isRadioNormal ? 'เครื่องวิทยุทำงานปกติ' : 'พบข้อขัดข้องในการใช้งาน'}</td>
-                      </tr>
-                      <tr>
-                        <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>2. ภาครับ - ส่งสัญญาณ (Receiver & Transmitter Status)</td>
-                        <td className="py-2 px-2.5 text-center">
-                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isSignalNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
-                            {isSignalNormal ? 'ปกติ' : 'ไม่ปกติ'}
-                          </span>
-                        </td>
-                        <td className={cn('py-2 px-2.5', labelClass)}>{isSignalNormal ? 'รับและส่งสัญญาณได้ตามปกติ ชัดเจน' : 'พบข้อขัดข้องในการรับหรือส่งสัญญาณ'}</td>
-                      </tr>
-                      <tr>
-                        <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>3. ระบบไฟฟ้าหลักของสถานี (Power Supply)</td>
-                        <td className="py-2 px-2.5 text-center">
-                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isPowerNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
-                            {isPowerNormal ? 'ปกติ' : 'ไม่ปกติ'}
-                          </span>
-                        </td>
-                        <td className={cn('py-2 px-2.5', labelClass)}>{isPowerNormal ? 'ระบบไฟฟ้าจ่ายไฟสม่ำเสมอ' : 'ระบบไฟฟ้าขัดข้อง/ไฟตกบ่อย'}</td>
-                      </tr>
-                      <tr>
-                        <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>4. แบตเตอรี่สำรอง (Backup Battery)</td>
-                        <td className="py-2 px-2.5 text-center">
-                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isBatteryNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
-                            {isBatteryNormal ? 'ปกติ' : 'ไม่ปกติ'}
-                          </span>
-                        </td>
-                        <td className={cn('py-2 px-2.5', labelClass)}>{isBatteryNormal ? 'แบตเตอรี่สำรองพร้อมจ่ายไฟ' : 'แบตเตอรี่เสื่อม/เก็บไฟไม่อยู่'}</td>
-                      </tr>
-                      <tr>
-                        <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>5. ระบบกราวด์ ( Ground System )</td>
-                        <td className="py-2 px-2.5 text-center">
-                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isGroundNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
-                            {isGroundNormal ? 'ปกติ' : 'ไม่ปกติ'}
-                          </span>
-                        </td>
-                        <td className={cn('py-2 px-2.5', labelClass)}>{isGroundNormal ? 'ระบบกราวด์สมบูรณ์ ต่อลงดินเรียบร้อย' : 'ระบบกราวด์มีปัญหา/หลุดหลวม'}</td>
-                      </tr>
-                      <tr>
-                        <td className={cn('py-2 px-2.5 font-medium', labelClass)}>ปัญหาเพิ่มเติมที่ผู้ใช้งานแจ้ง</td>
-                        <td colSpan={2} className={cn('py-2 px-2.5', valMediumClass)}>{userProblem}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Section 4: Site Environmental & Summary */}
-              <div className={sectionCardClass}>
-                <h4 className={sectionTitleClass}>
-                  <FileText className={cn('h-4 w-4', sectionIconClass)} />
-                  <span>4. สภาพแวดล้อมและสรุปผล (Environment & Summary)</span>
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
-                  <div>
-                    <span className={cn('block mb-0.5', labelClass)}>สภาพพื้นที่ติดตั้งอุปกรณ์</span>
-                    <span className={cn('font-medium', valMediumClass)}>{siteCondition}</span>
-                  </div>
-                  <div>
-                    <span className={cn('block mb-0.5', labelClass)}>สภาพเสาอากาศและสายอากาศ</span>
-                    <span className={cn('font-medium', valMediumClass)}>{antennaCondition}</span>
-                  </div>
-                  <div className="md:col-span-2">
-                    <span className={cn('block mb-0.5', labelClass)}>อุปสรรคและข้อจำกัดในการปฏิบัติงาน</span>
-                    <span className={cn('font-medium', valMediumClass)}>{workObstacle}</span>
-                  </div>
-                  <div className={cn('md:col-span-2 p-3 rounded-lg border transition-colors', isDark ? 'bg-slate-900/60 border-slate-800/80' : 'bg-slate-50 border-slate-200')}>
-                    <span className={cn('block mb-1 font-semibold', labelClass)}>สรุปผลการตรวจเยี่ยมและข้อคิดเห็น</span>
-                    <p className={cn('leading-relaxed', valMediumClass)}>{summary}</p>
-                  </div>
-                  <div>
-                    <span className={cn('block mb-0.5', labelClass)}>ผู้ให้ข้อมูล / เจ้าของพื้นที่</span>
-                    <span className={cn('font-semibold', valBoldClass)}>{informantName !== '-' ? informantName : contactName}</span>
-                  </div>
-                  <div>
-                    <span className={cn('block mb-0.5', labelClass)}>เจ้าหน้าที่ผู้ตรวจเยี่ยม</span>
-                    <span className={cn('font-semibold', valBoldClass)}>{operatorName}</span>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Section 5: Uploaded Photos Gallery */}
-          <div className={sectionCardClass}>
-            <div className={cn('flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2.5 mb-3', isDark ? 'border-slate-800' : 'border-slate-200')}>
-              <div className="flex items-center gap-2">
-                <ImageIcon className={cn('h-4 w-4', sectionIconClass)} />
-                <h4 className={cn('text-sm font-bold', isDark ? 'text-cyan-300' : 'text-sky-700')}>
-                  5. รูปภาพที่อัปโหลดจากการตรวจเยี่ยม (Field Photos)
-                </h4>
-                <span
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-xs font-semibold border',
-                    isUnvisited
-                      ? isDark
-                        ? 'bg-purple-500/10 border-purple-500/20 text-purple-300'
-                        : 'bg-purple-100 border-purple-200 text-purple-700'
-                      : isDark
-                        ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-300'
-                        : 'bg-sky-100 border-sky-200 text-sky-700'
-                  )}
-                >
-                  {isUnvisited ? '0 รูป (รอลงพื้นที่)' : `${photos.length} รูป`}
-                </span>
-              </div>
-
-              {!isUnvisited && photos.length > 1 && (
-                <button
-                  type="button"
-                  onClick={handleDownloadAllPhotos}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer self-start sm:self-auto',
+                    'inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
                     isDark
-                      ? 'border-cyan-500/30 bg-cyan-950/50 text-cyan-300 hover:bg-cyan-600/30 hover:text-white'
-                      : 'border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100'
+                      ? 'border-purple-500/40 bg-purple-600/25 text-purple-300 hover:bg-purple-600/40 hover:border-purple-400 hover:text-white'
+                      : 'border-purple-300 bg-purple-50 text-purple-800 hover:bg-purple-100 hover:border-purple-400'
                   )}
+                  title="เริ่มลงพื้นที่สำรวจสถานีนี้"
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  <span>ดาวน์โหลดรูปภาพทั้งหมด</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                  <span>เริ่มลงพื้นที่</span>
                 </button>
               )}
+
+              {/* Edit Button for Surveyed Station */}
+              {!isUnvisited && onEdit && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onEdit(surveyData);
+                  }}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
+                    isDark
+                      ? 'border-amber-500/40 bg-amber-600/20 text-amber-300 hover:bg-amber-600/30 hover:border-amber-400 hover:text-white'
+                      : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-400'
+                  )}
+                  title="แก้ไขข้อมูลการตรวจเยี่ยมนี้"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  <span>แก้ไข</span>
+                </button>
+              )}
+
+              {/* Delete Button for Surveyed Station */}
+              {!isUnvisited && onDelete && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onDelete(surveyData);
+                  }}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
+                    isDark
+                      ? 'border-rose-500/40 bg-rose-600/20 text-rose-300 hover:bg-rose-600/30 hover:border-rose-400 hover:text-white'
+                      : 'border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 hover:border-rose-400'
+                  )}
+                  title="ลบรายการตรวจเยี่ยมนี้"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>ลบ</span>
+                </button>
+              )}
+
+              {/* Official Report A4 Modal Button for Surveyed Station */}
+              {!isUnvisited && onOpenOfficialReport && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                    onOpenOfficialReport(surveyData);
+                  }}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
+                    isDark
+                      ? 'border-blue-500/30 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 hover:border-blue-400 hover:text-white'
+                      : 'border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-400'
+                  )}
+                  title="เปิดแบบรายงานการตรวจเยี่ยมทางการขนาด A4"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  <span>รายงาน A4</span>
+                </button>
+              )}
+
+              {/* Close Button (✕) */}
+              <DialogPrimitive.Close asChild>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-xl border transition-colors cursor-pointer',
+                    isDark
+                      ? 'border-slate-700 bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+                  )}
+                  title="ปิดหน้าต่าง (Esc)"
+                  aria-label="ปิดหน้าต่าง"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </DialogPrimitive.Close>
+            </div>
+          </div>
+
+          {/* Scrollable Content Body */}
+          <div
+            className={cn(
+              'flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 transition-colors custom-scrollbar',
+              isDark ? 'bg-gradient-to-b from-slate-900/60 to-slate-950' : 'bg-slate-100/60'
+            )}
+          >
+            {/* Section 1: Station & Location Details */}
+            <div className={sectionCardClass}>
+              <h4 className={sectionTitleClass}>
+                <MapPin className={cn('h-4 w-4', sectionIconClass)} />
+                <span>1. ข้อมูลสถานีและสถานที่ติดตั้ง (Station & Location)</span>
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
+                <div>
+                  <span className={cn('block mb-0.5', labelClass)}>ชื่อสถานี</span>
+                  <span className={cn('font-semibold text-sm', valBoldClass)}>{stationName}</span>
+                </div>
+                <div>
+                  <span className={cn('block mb-0.5', labelClass)}>สถานที่วางเครื่อง</span>
+                  <span className={cn('font-medium', valMediumClass)}>{equipmentPlace}</span>
+                </div>
+                <div className="md:col-span-2">
+                  <span className={cn('block mb-0.5', labelClass)}>สถานที่ติดตั้ง</span>
+                  <span className={cn('font-medium', valMediumClass)}>{fullLocation}</span>
+                </div>
+                <div>
+                  <span className={cn('block mb-0.5', labelClass)}>วันที่ตรวจเยี่ยม</span>
+                  <span className={cn('font-medium flex items-center gap-1.5', valMediumClass)}>
+                    <Calendar className={cn('h-3.5 w-3.5', labelClass)} />
+                    {visitDateStr}
+                  </span>
+                </div>
+                <div>
+                  <span className={cn('block mb-0.5', labelClass)}>เวลาที่ตรวจเยี่ยม</span>
+                  <span className={cn('font-medium flex items-center gap-1.5', valMediumClass)}>
+                    <Clock className={cn('h-3.5 w-3.5', labelClass)} />
+                    {visitTime}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {isUnvisited ? (
-              <div className={cn('flex flex-col items-center justify-center py-8 px-4 text-center rounded-xl border border-dashed transition-colors', isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-300')}>
-                <Clock className={cn('h-8 w-8 mb-2', isDark ? 'text-purple-400/60' : 'text-purple-500/60')} />
-                <p className={cn('text-sm font-medium', isDark ? 'text-slate-300' : 'text-slate-700')}>
-                  ยังไม่มีภาพถ่ายภาคสนามสำหรับสถานีนี้
-                </p>
-                <p className={cn('text-xs mt-0.5', labelClass)}>
-                  สามารถบันทึกและอัปโหลดภาพถ่ายสถานที่และอุปกรณ์เมื่อเริ่มลงพื้นที่สำรวจจริง
-                </p>
-              </div>
-            ) : resolvedPhotos.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-                {resolvedPhotos.map((photo, index) => {
-                  const photoSrc = getPhotoSrc(photo);
-                  return (
-                    <div
-                      key={photo.id || index}
+            {/* Section 2: Contact & Permission Details */}
+            <div className={sectionCardClass}>
+              <h4 className={sectionTitleClass}>
+                <User className={cn('h-4 w-4', sectionIconClass)} />
+                <span>2. ข้อมูลผู้ให้ข้อมูล / ผู้ประสานงาน และสิทธิ์การเข้าพื้นที่ (Coordinator & Permission)</span>
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
+                <div>
+                  <span className={cn('block mb-0.5', labelClass)}>ชื่อ - สกุล ผู้ประสานงาน</span>
+                  <span className={cn('font-semibold text-sm', valBoldClass)}>{contactName}</span>
+                </div>
+                <div>
+                  <span className={cn('block mb-0.5', labelClass)}>ตำแหน่ง</span>
+                  <span className={cn('font-medium', valMediumClass)}>{contactPosition}</span>
+                </div>
+                <div>
+                  <span className={cn('block mb-0.5', labelClass)}>หน่วยงาน / หมู่บ้าน</span>
+                  <span className={cn('font-medium', valMediumClass)}>{contactVillage}</span>
+                </div>
+                <div>
+                  <span className={cn('block mb-0.5', labelClass)}>เบอร์โทรศัพท์ติดต่อ</span>
+                  {contactPhone && contactPhone !== '-' ? (
+                    <a
+                      href={`tel:${contactPhone.replace(/\s+/g, '')}`}
+                      className={cn('font-mono hover:underline flex items-center gap-1 font-semibold', isDark ? 'text-cyan-400' : 'text-sky-600')}
+                      title="คลิกเพื่อโทรออก"
+                    >
+                      <Phone className="h-3.5 w-3.5" />
+                      {contactPhone}
+                    </a>
+                  ) : (
+                    <span className="text-slate-500">-</span>
+                  )}
+                </div>
+                <div>
+                  <span className={cn('block mb-0.5', labelClass)}>สถานะการขออนุญาตเข้าพื้นที่</span>
+                  {isUnvisited ? (
+                    <span
                       className={cn(
-                        'group relative flex flex-col rounded-xl border overflow-hidden shadow-xs transition-all duration-200',
-                        isDark ? 'border-slate-800 bg-slate-900/80 hover:border-cyan-500/50' : 'border-slate-200 bg-white hover:border-sky-300 shadow-2xs'
+                        'inline-flex items-center gap-1.5 font-semibold px-2.5 py-0.5 rounded-lg text-xs border',
+                        isDark ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' : 'bg-purple-50 text-purple-800 border-purple-200'
                       )}
                     >
-                      {/* Thumbnail Image */}
-                      <div
-                        onClick={() => setActivePhoto(photo)}
-                        className="relative h-44 w-full bg-black/50 overflow-hidden cursor-pointer flex items-center justify-center"
-                      >
-                        <img
-                          src={photoSrc}
-                          alt={photo.name}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          loading="lazy"
-                          onError={(e) => {
-                            if (recordId && recordId !== '-' && (!photoSrc || !photoSrc.startsWith('data:'))) {
-                              fetch(`https://raw.githubusercontent.com/Thaidimaru/Pre_PM2/main/data/surveys/${encodeURIComponent(recordId)}.json`)
-                                .then((r) => (r.ok ? r.json() : null))
-                                .then((data) => {
-                                  const match =
-                                    data?.photos?.[index] ||
-                                    data?.photos?.find((p) => p.name === photo.name);
-                                  if (match && match.data) {
-                                    const b64 = match.data.startsWith('data:')
-                                      ? match.data
-                                      : `data:${match.type || 'image/jpeg'};base64,${match.data}`;
-                                    e.currentTarget.src = b64;
-                                  }
-                                })
-                                .catch(() => { });
-                            }
-                          }}
-                        />
-                        {/* Zoom Indicator Overlay */}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <span className="flex items-center gap-1 rounded-lg bg-black/70 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm border border-white/20">
-                            <ZoomIn className="h-3.5 w-3.5" />
-                            <span>ดูรูปขนาดใหญ่</span>
-                          </span>
-                        </div>
-                      </div>
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>ยังไม่ได้ขออนุญาต / รอตรวจ</span>
+                    </span>
+                  ) : (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1.5 font-semibold px-2.5 py-0.5 rounded-lg text-xs border',
+                        isPermitted
+                          ? isDark
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : isDark
+                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                            : 'bg-rose-50 text-rose-800 border-rose-200'
+                      )}
+                    >
+                      {isPermitted ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                      <span>{isPermitted ? 'อนุญาตให้เข้าพื้นที่' : 'ไม่อนุญาตให้เข้าพื้นที่'}</span>
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span className={cn('block mb-0.5', labelClass)}>ข้อจำกัดในการเข้าพื้นที่</span>
+                  <span className={cn('font-medium', valMediumClass)}>{accessLimit}</span>
+                </div>
+              </div>
+            </div>
 
-                      {/* Photo Info & Download Button */}
-                      <div className={cn('p-2.5 flex items-center justify-between gap-2 transition-colors', isDark ? 'bg-slate-950/80' : 'bg-slate-50')}>
-                        <div className="min-w-0">
-                          <p className={cn('text-xs font-medium truncate', valMediumClass)} title={photo.name}>
-                            {photo.name || `photo_${index + 1}.jpg`}
-                          </p>
-                          {photo.size ? (
-                            <span className={cn('text-[11px]', labelClass)}>
-                              {formatSize(photo.size)}
-                            </span>
-                          ) : null}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={(e) => handleDownloadPhoto(photo, e)}
-                          className={cn(
-                            'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs',
-                            isDark
-                              ? 'border-cyan-500/40 bg-cyan-950/60 text-cyan-300 hover:bg-cyan-600 hover:text-white'
-                              : 'border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-400'
-                          )}
-                          title="ดาวน์โหลดรูปภาพนี้"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          <span>ดาวน์โหลด</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Conditional View: Clean Empty State for Unvisited OR Full Assessment for Surveyed */}
+            {isUnvisited ? (
+              /* Clean Empty State Card for Unvisited Station */
+              <div
+                className={cn(
+                  'rounded-2xl border p-6 sm:p-8 text-center space-y-4 my-2 transition-colors shadow-sm',
+                  isDark
+                    ? 'bg-purple-950/20 border-purple-500/30 text-slate-200'
+                    : 'bg-purple-50/80 border-purple-200 text-slate-800'
+                )}
+              >
+                <div
+                  className={cn(
+                    'inline-flex p-3.5 rounded-2xl border mx-auto',
+                    isDark
+                      ? 'bg-purple-500/20 border-purple-500/30 text-purple-300'
+                      : 'bg-purple-100 border-purple-200 text-purple-700'
+                  )}
+                >
+                  <Clock className="h-8 w-8" />
+                </div>
+                <div className="max-w-md mx-auto space-y-1.5">
+                  <h4 className={cn('text-base sm:text-lg font-bold', isDark ? 'text-white' : 'text-slate-900')}>
+                    ยังไม่มีประวัติการบันทึกข้อมูลการตรวจเยี่ยมภาคสนาม
+                  </h4>
+                  <p className={cn('text-xs sm:text-sm leading-relaxed', isDark ? 'text-slate-400' : 'text-slate-600')}>
+                    สถานี <strong className={isDark ? 'text-white' : 'text-slate-900'}>{stationName}</strong> อยู่ในทะเบียนสถานีวิทยุคมนาคมระบบ Pre-PM เรียบร้อยแล้ว แต่ยังไม่ได้ลงพื้นที่ตรวจเยี่ยมเจ้าของพื้นที่และตรวจสอบสภาพระบบอุปกรณ์
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onClose();
+                      if (onStartSurvey) onStartSurvey(surveyData);
+                      else if (onEdit) onEdit(surveyData);
+                    }}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-500/25 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    <span>เริ่มลงพื้นที่สำรวจสถานีนี้ (Start Field Visit)</span>
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className={cn('flex flex-col items-center justify-center py-8 px-4 text-center rounded-xl border border-dashed transition-colors', isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-300')}>
-                <ImageIcon className={cn('h-9 w-9 mb-2', isDark ? 'text-slate-600' : 'text-slate-400')} />
-                <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-slate-600')}>
-                  ไม่มีรูปภาพแนบในบันทึกรายการนี้
-                </p>
-                <p className={cn('text-xs mt-0.5', labelClass)}>
-                  สามารถอัปโหลดรูปภาพแนบเพิ่มเติมในการบันทึกตรวจเยี่ยมครั้งถัดไป
-                </p>
-              </div>
+              <>
+                {/* Section 3: Equipment Assessment */}
+                <div className={sectionCardClass}>
+                  <h4 className={sectionTitleClass}>
+                    <ShieldCheck className={cn('h-4 w-4', sectionIconClass)} />
+                    <span>3. บันทึกผลการตรวจสอบและประเมินสภาพระบบอุปกรณ์ (Equipment & Operational Assessment)</span>
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead>
+                        <tr className={cn('border-b text-xs font-semibold', isDark ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-600')}>
+                          <th className="py-2 px-2.5">รายการประเมิน</th>
+                          <th className="py-2 px-2.5 text-center">สถานะ</th>
+                          <th className="py-2 px-2.5">รายละเอียด / ข้อสังเกต</th>
+                        </tr>
+                      </thead>
+                      <tbody className={cn('divide-y', isDark ? 'divide-slate-800/60' : 'divide-slate-200')}>
+                        <tr>
+                          <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>1. สภาพการทำงานของเครื่องวิทยุคมนาคม</td>
+                          <td className="py-2 px-2.5 text-center">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isRadioNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                              {isRadioNormal ? 'ปกติ' : 'ไม่ปกติ'}
+                            </span>
+                          </td>
+                          <td className={cn('py-2 px-2.5', labelClass)}>{isRadioNormal ? 'เครื่องวิทยุทำงานปกติ' : 'พบข้อขัดข้องในการใช้งาน'}</td>
+                        </tr>
+                        <tr>
+                          <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>2. ภาครับ - ส่งสัญญาณ (Receiver & Transmitter Status)</td>
+                          <td className="py-2 px-2.5 text-center">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isSignalNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                              {isSignalNormal ? 'ปกติ' : 'ไม่ปกติ'}
+                            </span>
+                          </td>
+                          <td className={cn('py-2 px-2.5', labelClass)}>{isSignalNormal ? 'รับและส่งสัญญาณได้ตามปกติ ชัดเจน' : 'พบข้อขัดข้องในการรับหรือส่งสัญญาณ'}</td>
+                        </tr>
+                        <tr>
+                          <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>3. ระบบไฟฟ้าหลักของสถานี (Power Supply)</td>
+                          <td className="py-2 px-2.5 text-center">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isPowerNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                              {isPowerNormal ? 'ปกติ' : 'ไม่ปกติ'}
+                            </span>
+                          </td>
+                          <td className={cn('py-2 px-2.5', labelClass)}>{isPowerNormal ? 'ระบบไฟฟ้าจ่ายไฟสม่ำเสมอ' : 'ระบบไฟฟ้าขัดข้อง/ไฟตกบ่อย'}</td>
+                        </tr>
+                        <tr>
+                          <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>4. แบตเตอรี่สำรอง (Backup Battery)</td>
+                          <td className="py-2 px-2.5 text-center">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isBatteryNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                              {isBatteryNormal ? 'ปกติ' : 'ไม่ปกติ'}
+                            </span>
+                          </td>
+                          <td className={cn('py-2 px-2.5', labelClass)}>{isBatteryNormal ? 'แบตเตอรี่สำรองพร้อมจ่ายไฟ' : 'แบตเตอรี่เสื่อม/เก็บไฟไม่อยู่'}</td>
+                        </tr>
+                        <tr>
+                          <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>5. ระบบกราวด์ ( Ground System )</td>
+                          <td className="py-2 px-2.5 text-center">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isGroundNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                              {isGroundNormal ? 'ปกติ' : 'ไม่ปกติ'}
+                            </span>
+                          </td>
+                          <td className={cn('py-2 px-2.5', labelClass)}>{isGroundNormal ? 'ระบบกราวด์สมบูรณ์ ต่อลงดินเรียบร้อย' : 'ระบบกราวด์มีปัญหา/หลุดหลวม'}</td>
+                        </tr>
+                        <tr>
+                          <td className={cn('py-2 px-2.5 font-medium', labelClass)}>ปัญหาเพิ่มเติมที่ผู้ใช้งานแจ้ง</td>
+                          <td colSpan={2} className={cn('py-2 px-2.5', valMediumClass)}>{userProblem}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Section 4: Site Environmental & Summary */}
+                <div className={sectionCardClass}>
+                  <h4 className={sectionTitleClass}>
+                    <FileText className={cn('h-4 w-4', sectionIconClass)} />
+                    <span>4. สภาพแวดล้อมและสรุปผล (Environment & Summary)</span>
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
+                    <div>
+                      <span className={cn('block mb-0.5', labelClass)}>สภาพพื้นที่ติดตั้งอุปกรณ์</span>
+                      <span className={cn('font-medium', valMediumClass)}>{siteCondition}</span>
+                    </div>
+                    <div>
+                      <span className={cn('block mb-0.5', labelClass)}>สภาพเสาอากาศและสายอากาศ</span>
+                      <span className={cn('font-medium', valMediumClass)}>{antennaCondition}</span>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className={cn('block mb-0.5', labelClass)}>อุปสรรคและข้อจำกัดในการปฏิบัติงาน</span>
+                      <span className={cn('font-medium', valMediumClass)}>{workObstacle}</span>
+                    </div>
+                    <div className={cn('md:col-span-2 p-3 rounded-lg border transition-colors', isDark ? 'bg-slate-900/60 border-slate-800/80' : 'bg-slate-50 border-slate-200')}>
+                      <span className={cn('block mb-1 font-semibold', labelClass)}>สรุปผลการตรวจเยี่ยมและข้อคิดเห็น</span>
+                      <p className={cn('leading-relaxed', valMediumClass)}>{summary}</p>
+                    </div>
+                    <div>
+                      <span className={cn('block mb-0.5', labelClass)}>ผู้ให้ข้อมูล / เจ้าของพื้นที่</span>
+                      <span className={cn('font-semibold', valBoldClass)}>{informantName !== '-' ? informantName : contactName}</span>
+                    </div>
+                    <div>
+                      <span className={cn('block mb-0.5', labelClass)}>เจ้าหน้าที่ผู้ตรวจเยี่ยม</span>
+                      <span className={cn('font-semibold', valBoldClass)}>{operatorName}</span>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
+
+            {/* Section 5: Uploaded Photos Gallery */}
+            <div className={sectionCardClass}>
+              <div className={cn('flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2.5 mb-3', isDark ? 'border-slate-800' : 'border-slate-200')}>
+                <div className="flex items-center gap-2">
+                  <ImageIcon className={cn('h-4 w-4', sectionIconClass)} />
+                  <h4 className={cn('text-sm font-bold', isDark ? 'text-cyan-300' : 'text-sky-700')}>
+                    5. รูปภาพที่อัปโหลดจากการตรวจเยี่ยม (Field Photos)
+                  </h4>
+                  <span
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-xs font-semibold border',
+                      isUnvisited
+                        ? isDark
+                          ? 'bg-purple-500/10 border-purple-500/20 text-purple-300'
+                          : 'bg-purple-100 border-purple-200 text-purple-700'
+                        : isDark
+                          ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-300'
+                          : 'bg-sky-100 border-sky-200 text-sky-700'
+                    )}
+                  >
+                    {isUnvisited ? '0 รูป (รอลงพื้นที่)' : `${photos.length} รูป`}
+                  </span>
+                </div>
+
+                {!isUnvisited && photos.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleDownloadAllPhotos}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer self-start sm:self-auto',
+                      isDark
+                        ? 'border-cyan-500/30 bg-cyan-950/50 text-cyan-300 hover:bg-cyan-600/30 hover:text-white'
+                        : 'border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100'
+                    )}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>ดาวน์โหลดรูปภาพทั้งหมด</span>
+                  </button>
+                )}
+              </div>
+
+              {isUnvisited ? (
+                <div className={cn('flex flex-col items-center justify-center py-8 px-4 text-center rounded-xl border border-dashed transition-colors', isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-300')}>
+                  <Clock className={cn('h-8 w-8 mb-2', isDark ? 'text-purple-400/60' : 'text-purple-500/60')} />
+                  <p className={cn('text-sm font-medium', isDark ? 'text-slate-300' : 'text-slate-700')}>
+                    ยังไม่มีภาพถ่ายภาคสนามสำหรับสถานีนี้
+                  </p>
+                  <p className={cn('text-xs mt-0.5', labelClass)}>
+                    สามารถบันทึกและอัปโหลดภาพถ่ายสถานที่และอุปกรณ์เมื่อเริ่มลงพื้นที่สำรวจจริง
+                  </p>
+                </div>
+              ) : resolvedPhotos.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                  {resolvedPhotos.map((photo, index) => {
+                    const photoSrc = getPhotoSrc(photo);
+                    return (
+                      <div
+                        key={photo.id || index}
+                        className={cn(
+                          'group relative flex flex-col rounded-xl border overflow-hidden shadow-xs transition-all duration-200',
+                          isDark ? 'border-slate-800 bg-slate-900/80 hover:border-cyan-500/50' : 'border-slate-200 bg-white hover:border-sky-300 shadow-2xs'
+                        )}
+                      >
+                        {/* Thumbnail Image */}
+                        <div
+                          onClick={() => setActivePhoto(photo)}
+                          className="relative h-44 w-full bg-black/50 overflow-hidden cursor-pointer flex items-center justify-center"
+                        >
+                          <img
+                            src={photoSrc}
+                            alt={photo.name}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                            onError={(e) => {
+                              if (recordId && recordId !== '-' && (!photoSrc || !photoSrc.startsWith('data:'))) {
+                                fetch(`https://raw.githubusercontent.com/Thaidimaru/Pre_PM2/main/data/surveys/${encodeURIComponent(recordId)}.json`)
+                                  .then((r) => (r.ok ? r.json() : null))
+                                  .then((data) => {
+                                    const match =
+                                      data?.photos?.[index] ||
+                                      data?.photos?.find((p) => p.name === photo.name);
+                                    if (match && match.data) {
+                                      const b64 = match.data.startsWith('data:')
+                                        ? match.data
+                                        : `data:${match.type || 'image/jpeg'};base64,${match.data}`;
+                                      e.currentTarget.src = b64;
+                                    }
+                                  })
+                                  .catch(() => { });
+                              }
+                            }}
+                          />
+                          {/* Zoom Indicator Overlay */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <span className="flex items-center gap-1 rounded-lg bg-black/70 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm border border-white/20">
+                              <ZoomIn className="h-3.5 w-3.5" />
+                              <span>ดูรูปขนาดใหญ่</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Photo Info & Download Button */}
+                        <div className={cn('p-2.5 flex items-center justify-between gap-2 transition-colors', isDark ? 'bg-slate-950/80' : 'bg-slate-50')}>
+                          <div className="min-w-0">
+                            <p className={cn('text-xs font-medium truncate', valMediumClass)} title={photo.name}>
+                              {photo.name || `photo_${index + 1}.jpg`}
+                            </p>
+                            {photo.size ? (
+                              <span className={cn('text-[11px]', labelClass)}>
+                                {formatSize(photo.size)}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleDownloadPhoto(photo, e)}
+                            className={cn(
+                              'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs',
+                              isDark
+                                ? 'border-cyan-500/40 bg-cyan-950/60 text-cyan-300 hover:bg-cyan-600 hover:text-white'
+                                : 'border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-400'
+                            )}
+                            title="ดาวน์โหลดรูปภาพนี้"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            <span>ดาวน์โหลด</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className={cn('flex flex-col items-center justify-center py-8 px-4 text-center rounded-xl border border-dashed transition-colors', isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-300')}>
+                  <ImageIcon className={cn('h-9 w-9 mb-2', isDark ? 'text-slate-600' : 'text-slate-400')} />
+                  <p className={cn('text-sm font-medium', isDark ? 'text-slate-400' : 'text-slate-600')}>
+                    ไม่มีรูปภาพแนบในบันทึกรายการนี้
+                  </p>
+                  <p className={cn('text-xs mt-0.5', labelClass)}>
+                    สามารถอัปโหลดรูปภาพแนบเพิ่มเติมในการบันทึกตรวจเยี่ยมครั้งถัดไป
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
 
       {/* Lightbox Modal for Full Resolution Photo */}
       {activePhoto && (
-        <div
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setActivePhoto(null);
-          }}
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
-        >
-          <div
-            className={cn(
-              'relative flex flex-col w-full max-w-3xl max-h-[90vh] rounded-2xl border p-4 shadow-2xl overflow-hidden',
-              isDark ? 'bg-slate-950 border-blue-500/40 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
-            )}
-          >
-            <div className={cn('flex items-center justify-between pb-3 border-b shrink-0', isDark ? 'border-slate-800' : 'border-slate-200')}>
-              <div className="min-w-0 pr-4">
-                <h4 className={cn('text-sm font-bold truncate', valBoldClass)}>
-                  {activePhoto.name}
-                </h4>
-                {activePhoto.size ? (
-                  <span className={cn('text-xs', labelClass)}>
-                    ขนาดไฟล์: {formatSize(activePhoto.size)}
-                  </span>
-                ) : null}
+        <DialogPrimitive.Root open={Boolean(activePhoto)} onOpenChange={(open) => !open && setActivePhoto(null)}>
+          <DialogPrimitive.Portal>
+            <DialogPrimitive.Overlay
+              className="fixed inset-0 z-[80] bg-black/90 backdrop-blur-md transition-all duration-200 pointer-events-auto"
+            />
+            <DialogPrimitive.Content
+              aria-describedby="photo-lightbox-description"
+              className={cn(
+                'fixed left-1/2 top-1/2 z-[80] -translate-x-1/2 -translate-y-1/2 pointer-events-auto',
+                'flex flex-col w-[94vw] max-w-3xl max-h-[90vh] rounded-2xl border p-4 shadow-2xl overflow-hidden duration-200',
+                isDark ? 'bg-slate-950 border-blue-500/40 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+              )}
+            >
+              <div className={cn('flex items-center justify-between pb-3 border-b shrink-0', isDark ? 'border-slate-800' : 'border-slate-200')}>
+                <div className="min-w-0 pr-4">
+                  <DialogPrimitive.Title asChild>
+                    <h4 className={cn('text-sm font-bold truncate', valBoldClass)}>
+                      {activePhoto.name}
+                    </h4>
+                  </DialogPrimitive.Title>
+                  <DialogPrimitive.Description id="photo-lightbox-description" className="sr-only">
+                    รูปภาพขนาดเต็มจากการลงพื้นที่ตรวจเยี่ยม
+                  </DialogPrimitive.Description>
+                  {activePhoto.size ? (
+                    <span className={cn('text-xs', labelClass)}>
+                      ขนาดไฟล์: {formatSize(activePhoto.size)}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadPhoto(activePhoto)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:from-blue-500 hover:to-cyan-400 transition-all cursor-pointer"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>ดาวน์โหลด</span>
+                  </button>
+                  <DialogPrimitive.Close asChild>
+                    <button
+                      type="button"
+                      onClick={() => setActivePhoto(null)}
+                      className={cn(
+                        'flex h-8 w-8 items-center justify-center rounded-lg border transition-colors cursor-pointer',
+                        isDark ? 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-slate-900'
+                      )}
+                      title="ปิดภาพขนาดใหญ่"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </DialogPrimitive.Close>
+                </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => handleDownloadPhoto(activePhoto)}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:from-blue-500 hover:to-cyan-400 transition-all cursor-pointer"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>ดาวน์โหลด</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActivePhoto(null)}
-                  className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-lg border transition-colors cursor-pointer',
-                    isDark ? 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-slate-900'
-                  )}
-                  title="ปิดภาพขนาดใหญ่"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
 
-            <div className="mt-3 flex items-center justify-center rounded-xl bg-black/80 max-h-[75vh] overflow-hidden p-2">
-              <img
-                src={getPhotoSrc(activePhoto)}
-                alt={activePhoto.name}
-                className="max-h-[70vh] w-auto max-w-full object-contain rounded-lg shadow-2xl"
-              />
-            </div>
-          </div>
-        </div>
+              <div className="mt-3 flex items-center justify-center rounded-xl bg-black/80 max-h-[75vh] overflow-hidden p-2">
+                <img
+                  src={getPhotoSrc(activePhoto)}
+                  alt={activePhoto.name}
+                  className="max-h-[70vh] w-auto max-w-full object-contain rounded-lg shadow-2xl"
+                />
+              </div>
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
       )}
-    </div>
+    </DialogPrimitive.Root>
   );
-
-  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

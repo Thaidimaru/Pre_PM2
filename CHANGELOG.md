@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.15.10] - 2026-10-29
+
+### Fixed
+- **แก้ไขปัญหา Survey Detail Modal ค้าง ไม่สามารถเลื่อนดูเนื้อหาได้ และปุ่มกดไม่ตอบสนอง (`src/components/dashboard/SurveyPreviewModal.jsx`)**:
+  - เปลี่ยนการทำงานของ `SurveyPreviewModal` สู่ Radix UI Dialog Primitive (`DialogPrimitive.Root`, `DialogPrimitive.Portal`, `DialogPrimitive.Overlay`, `DialogPrimitive.Content`) เพื่อผสานเข้ากับ Radix Dialog Layer Stack โดยตรง
+  - ขจัดปัญหา `pointer-events` และ `FocusScope` ของ Modal ชั้นล่างขัดขวางการคลิกและการเลื่อนหน้าจอ
+  - กำหนดขนาดคอนเทนเนอร์ Modal อย่างชัดเจน (`max-h-[90vh]`) พร้อมเปิดการเลื่อนในแนวตั้ง (`flex-1 overflow-y-auto overscroll-contain`)
+  - ผูกปุ่มปิด (✕) เข้ากับ `DialogPrimitive.Close` และ `onClose` เคลียร์สถานะการเลือกสถานีและปิดหน้าต่างทันที
+  - ผูกปุ่ม "แก้ไข" (Edit) เข้ากับ `onEdit` ส่งมอบ `recordId` เพื่อเปิดฟอร์มแก้ไขข้อมูลภาคสนามได้ทันที
+  - รองรับการกดปุ่ม `Escape` และการคลิกพื้นที่ Backdrop ด้านนอกเพื่อปิดหน้าต่างอย่างราบรื่น
+- **เปลี่ยนหัวตารางสถานีหลักคอลัมน์แรกจาก `#` เป็นคำว่า "ลำดับ" (`src/components/dashboard/SurveyDrillDownModal.jsx`)**:
+  - เปลี่ยนแท็ก `<th className="py-3 px-3 text-center w-14 whitespace-nowrap">ลำดับ</th>` เพื่อความชัดเจนและคงการจัดกึ่งกลาง พร้อมลำดับตัวเลขต่อเนื่องคงเดิม
+
 ## [2.15.9] - 2026-10-29
 
 ### Fixed

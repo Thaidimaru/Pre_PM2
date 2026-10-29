@@ -435,10 +435,12 @@ export function SurveyDrillDownModal({
       const isSurveyed = Boolean(item.isSurveyed && item.surveyRecord);
       const baseRecord = item.surveyRecord || {};
       const baseFields = baseRecord.fields || {};
+      const recId = item.recordId || baseRecord.recordId || baseFields.recordId || item.surveyRecord?.recordId || null;
 
       const payload = {
         ...baseRecord,
         id: item.id,
+        recordId: recId,
         siteId: item.siteId,
         station: item.stationName,
         stationName: item.stationName,
@@ -457,6 +459,7 @@ export function SurveyDrillDownModal({
         masterRecord: item.masterRecord,
         fields: {
           ...baseFields,
+          recordId: recId,
           siteId: item.siteId,
           station: item.stationName,
           province: item.province,
@@ -757,7 +760,7 @@ export function SurveyDrillDownModal({
                   )}
                 >
                   <tr>
-                    <th className="py-3 px-3 text-center w-12 whitespace-nowrap">#</th>
+                    <th className="py-3 px-3 text-center w-14 whitespace-nowrap">ลำดับ</th>
                     <th className="py-3 px-3 w-28 whitespace-nowrap">Site ID</th>
                     <th className="py-3 px-4 min-w-[220px]">ชื่อสถานี / สถานที่ติดตั้ง</th>
                     <th className="py-3 px-3 w-36 whitespace-nowrap">จังหวัด / อำเภอ</th>
