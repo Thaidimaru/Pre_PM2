@@ -17,3 +17,4 @@ SURVEY_*.xlsx
 .netlify/
 Pre_PM2/
 .wrangler/
+data/surveys_backup_*/

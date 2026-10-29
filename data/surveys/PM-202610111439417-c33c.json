@@ -28,7 +28,9 @@
     "antennaCondition": "ปกติ",
     "workObstacle": "ไม่มี",
     "informantName": "นายพิทักษ์ วรรณภักดี",
-    "operatorName": "อนุศักดิ์ สมาน"
+    "operatorName": "อนุศักดิ์ สมาน",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

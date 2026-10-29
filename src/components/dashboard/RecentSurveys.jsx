@@ -52,7 +52,7 @@ export const SORT_OPTIONS = [
   { value: 'permit_desc', label: 'ผลขออนุญาต: ไม่อนุญาตก่อน', shortLabel: 'ไม่อนุญาตก่อน', icon: XCircle },
 ];
 
-export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh }) {
+export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh, selectedRound, onSelectRound }) {
   const { isDark } = useTheme();
   const [reportSurveys, setReportSurveys] = useState(null);
   const [selectedPreview, setSelectedPreview] = useState(null);
@@ -1072,6 +1072,38 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
 
             {/* Row 2: Secondary Filter Pills */}
             <div className="flex flex-wrap items-center gap-2.5 pt-2.5 border-t border-slate-200 dark:border-slate-800 text-xs">
+              {/* Round Selector / Filter */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={cn('text-xs font-semibold mr-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                  รอบตรวจ:
+                </span>
+                <select
+                  value={selectedRound || 'all'}
+                  onChange={(e) => {
+                    if (onSelectRound) {
+                      onSelectRound(e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10));
+                    }
+                    setCurrentPage(1);
+                  }}
+                  className={cn(
+                    'px-2.5 py-1 rounded-lg text-xs font-semibold border cursor-pointer transition-colors',
+                    isDark
+                      ? 'border-cyan-500/40 bg-slate-900 text-cyan-300'
+                      : 'border-sky-300 bg-sky-50 text-sky-800'
+                  )}
+                  title="กรองตารางประวัติตามรอบการตรวจเยี่ยม (รอบ 1 - 18)"
+                >
+                  <option value="all">ทุกรอบ</option>
+                  {Array.from({ length: 18 }, (_, i) => i + 1).map((r) => (
+                    <option key={r} value={r}>
+                      รอบที่ {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <span className={cn('hidden sm:inline', isDark ? 'text-slate-700' : 'text-slate-300')}>|</span>
+
               {/* Permit Filter Pills */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className={cn('text-xs font-semibold mr-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
@@ -1451,6 +1483,12 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
                             {item.recordId}
                           </span>
                           <ExternalLink className="h-3 w-3 opacity-50 group-hover:opacity-100 transition-opacity shrink-0" />
+                          <span className={cn(
+                            'text-[10px] px-1.5 py-0.5 rounded font-mono font-bold border ml-1',
+                            isDark ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' : 'bg-sky-100 text-sky-800 border-sky-300'
+                          )}>
+                            R{item.round_number || item.fields?.round_number || 1}
+                          </span>
                         </button>
                       </td>
 

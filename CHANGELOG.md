@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.16.0] - 2026-10-29
+
+### Added
+- **ระบบบริหารจัดการรอบการตรวจเยี่ยมสถานี 18 รอบ (Multi-Round Inspection Management Rounds 1–18)**:
+  - **อัปเดต Schema และ Migration ฐานข้อมูล (`schema.sql`, `migrations/0003_add_round_number.sql`, `worker/index.js`, `database.py`)**:
+    - เพิ่มแอตทริบิวต์ `round_number INTEGER NOT NULL DEFAULT 1` ในตาราง `surveys` พร้อมสร้างดัชนี `idx_surveys_round_number` เพื่อประสิทธิภาพการค้นหาและกรองข้อมูล
+    - อัปเดต Cloudflare Worker D1 API และ local SQLite server ให้รองรับการบันทึก (`POST /api/save`), แก้ไข (`POST /api/update`), และดึงข้อมูลแยกตามรอบการตรวจเยี่ยม
+  - **Retroactive Data Migration ย้อนหลังสถานีเดิม 197 สถานีสู่รอบที่ 1 (`scripts/migrate_assign_round_1.mjs`)**:
+    - ดำเนินการย้ายข้อมูลประวัติการตรวจเยี่ยมเดิมทั้ง 197 ไฟล์ใน `data/surveys/*.json` ให้มี `round_number = 1` ทั้งระดับ Root และภายใน `fields.round_number` ครบถ้วน 100%
+    - สำรองข้อมูลเดิมอย่างปลอดภัยไว้ใน `data/surveys_backup_round1/` (อยู่ใน `.gitignore`)
+    - ซิงค์ข้อมูลสแนปช็อตแบบคงที่ (`public/api/dashboard.json`, `dist/api/`) และสคริปต์ Seed SQL (`migrations/0002_seed_data.sql`) ให้มี `round_number = 1` สอดคล้องกันทั้งหมด
+  - **แบบฟอร์มการตรวจเยี่ยมภาคสนามรองรับการเลือกรอบ (`src/components/field/FieldVisitView.jsx`)**:
+    - เพิ่ม Dropdown บังคับเลือก: "รอบการตรวจเยี่ยม (Inspection Round)" ตัวเลือกตั้งแต่ "ครั้งที่ 1" ถึง "ครั้งที่ 18"
+    - ตั้งค่าเริ่มต้นเป็นรอบที่ 1 (หรือรอบที่ส่งผ่าน URL Query Parameter เช่น `?round=2`) และคงค่ารอบเดิมเมื่ออยู่ในโหมดแก้ไขข้อมูล
+  - **หน้าจอภาพรวมความคืบหน้าระดับรอบและระดับระบบ (`src/components/dashboard/MultiRoundOverview.jsx`)**:
+    - พัฒนาแผงภาพรวมเมทริกซ์ 18 รอบ (Grid Cards Rounds 1–18) แสดงความคืบหน้าเปรียบเทียบกับฐาน 197 สถานี พร้อมหลอดความคืบหน้าและสถานะ "ครบ 100%", "กำลังดำเนินการ", หรือ "ยังไม่เริ่ม"
+    - รองรับการคลิกที่การ์ดรอบใดๆ เพื่อสลับฟิลเตอร์เจาะลึกเฉพาะรอบนั้นได้ทันที
+  - **ระบบคัดกรองและคำนวณตัวชี้วัดรายรอบ (Round-Specific Filter & Recalculation)**:
+    - เพิ่มแถบเลือกรอบหลักด้านบนสุดของแดชบอร์ดและในตารางประวัติ (`src/components/dashboard/DashboardView.jsx`, `src/components/dashboard/RecentSurveys.jsx`)
+    - คำนวณตัวชี้วัดใหม่แบบไดนามิกเฉพาะรอบที่เลือก: KPI Metric Cards, สรุปผลสำรวจรายจังหวัด (`ProvinceChart`), และสัดส่วนผลสำรวจ (`SurveyDonut`)
+  - **รายการสถานีค้างดำเนินการตรวจเยี่ยมในรอบที่เลือก (`src/components/dashboard/PendingStationsChecklist.jsx`)**:
+    - แสดงตารางตรวจสอบรายชื่อสถานีที่ยังไม่ได้ลงพื้นที่ในรอบที่เลือกแบบ Real-time เปรียบเทียบกับฐานข้อมูล Master 197 สถานี
+    - มีช่องค้นหาและตัวกรองรายจังหวัด พร้อมปุ่ม Action "บันทึกผลรอบที่ X" ที่นำทางไปยังฟอร์มตรวจเยี่ยมพร้อมกรอกชื่อสถานีและรอบการตรวจให้อัตโนมัติ
+
 ## [2.15.11] - 2026-10-29
 
 ### Changed

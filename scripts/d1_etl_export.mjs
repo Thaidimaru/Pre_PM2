@@ -177,6 +177,7 @@ export function runEtl() {
     const station = fields.station || fields.stationSelect || doc.station || 'ไม่ระบุสถานี';
     const province = fields.province || doc.province || '';
     const permit = fields.permit === 'on' ? 'อนุญาต' : (fields.permit || doc.permit || 'ยังไม่ระบุ');
+    const roundNumber = Number(doc.round_number || fields.round_number || doc.round || fields.round || 1);
     const savedAt = doc.savedAt || new Date().toISOString();
     const updatedAt = doc.updatedAt || doc.savedAt || savedAt;
     const version = doc.version || 1;
@@ -223,6 +224,7 @@ export function runEtl() {
     cleanFields.station = station;
     cleanFields.province = province;
     cleanFields.permit = permit;
+    cleanFields.round_number = roundNumber;
     cleanFields.photos = surveyPhotoMeta;
 
     // Remove any accidental Base64 fields
@@ -241,6 +243,7 @@ export function runEtl() {
       station,
       province,
       permit,
+      round_number: roundNumber,
       fields_json: fieldsJson,
       deleted_at: deletedAt,
     });
@@ -274,6 +277,7 @@ export function runEtl() {
     const station = fields.station || fields.stationSelect || doc.station || 'ไม่ระบุสถานี';
     const province = fields.province || doc.province || '';
     const permit = fields.permit === 'on' ? 'อนุญาต' : (fields.permit || doc.permit || 'ยังไม่ระบุ');
+    const roundNumber = Number(doc.round_number || fields.round_number || doc.round || fields.round || 1);
     const savedAt = doc.savedAt || item.deletedAt;
     const updatedAt = item.deletedAt;
 
@@ -282,6 +286,7 @@ export function runEtl() {
     cleanFields.station = station;
     cleanFields.province = province;
     cleanFields.permit = permit;
+    cleanFields.round_number = roundNumber;
     cleanFields.photos = [];
     delete cleanFields.data;
     delete cleanFields.dataUrl;
@@ -298,6 +303,7 @@ export function runEtl() {
       station,
       province,
       permit,
+      round_number: roundNumber,
       fields_json: fieldsJson,
       deleted_at: item.deletedAt,
     });
@@ -323,7 +329,7 @@ export function runEtl() {
   sqlLines.push('-- 2. Insert Surveys');
   for (const sv of cleanSurveys) {
     sqlLines.push(
-      `INSERT OR REPLACE INTO surveys (record_id, saved_at, updated_at, version, station, province, permit, fields_json, deleted_at) VALUES (${escapeSql(sv.record_id)}, ${escapeSql(sv.saved_at)}, ${escapeSql(sv.updated_at)}, ${sv.version}, ${escapeSql(sv.station)}, ${escapeSql(sv.province)}, ${escapeSql(sv.permit)}, ${escapeSql(sv.fields_json)}, ${escapeSql(sv.deleted_at)});`
+      `INSERT OR REPLACE INTO surveys (record_id, saved_at, updated_at, version, station, province, permit, round_number, fields_json, deleted_at) VALUES (${escapeSql(sv.record_id)}, ${escapeSql(sv.saved_at)}, ${escapeSql(sv.updated_at)}, ${sv.version}, ${escapeSql(sv.station)}, ${escapeSql(sv.province)}, ${escapeSql(sv.permit)}, ${sv.round_number || 1}, ${escapeSql(sv.fields_json)}, ${escapeSql(sv.deleted_at)});`
     );
   }
 

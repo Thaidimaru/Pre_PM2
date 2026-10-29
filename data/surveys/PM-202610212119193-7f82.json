@@ -33,8 +33,10 @@
     "contactPhone": "064-042-0135",
     "informantName": "นายวิเชียร สุระคาย",
     "visitTime": "",
-    "accessLimit": ""
+    "accessLimit": "",
+    "round_number": 1
   },
   "photos": [],
-  "updatedAt": "2026-10-22T04:25:56.654Z"
+  "updatedAt": "2026-10-22T04:25:56.654Z",
+  "round_number": 1
 }

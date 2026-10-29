@@ -28,7 +28,9 @@
     "operatorName": "นายอุทัย หนาดสำโรง",
     "siteCondition": "ปกติ",
     "antennaCondition": "ปกติ",
-    "workObstacle": "ไม่มี"
+    "workObstacle": "ไม่มี",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

@@ -33,7 +33,9 @@
     "contactPhone": "092-357-0922",
     "informantName": "นายจรวัฒน์ กาฬพันธ์",
     "visitTime": "",
-    "accessLimit": ""
+    "accessLimit": "",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

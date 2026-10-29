@@ -260,6 +260,7 @@ function loadSurveysAndBuildDashboard(stations) {
       contactName: stationInfo.contact_name || fields.contactName || '',
       contactPosition: stationInfo.contact_position || fields.contactPosition || '',
       contactPhone: stationInfo.contact_phone || fields.contactPhone || '',
+      round_number: Number(doc.round_number || fields.round_number || 1),
       ...fields,
     };
 
@@ -269,6 +270,7 @@ function loadSurveysAndBuildDashboard(stations) {
       station: stationName || 'ไม่ระบุสถานี',
       province,
       permit: permitLabel,
+      round_number: Number(doc.round_number || fields.round_number || 1),
       fields: mergedFields,
       photos: doc.photos || [],
     });

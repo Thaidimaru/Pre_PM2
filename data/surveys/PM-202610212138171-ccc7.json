@@ -33,7 +33,9 @@
     "informantName": "นายสามารถ สิทธิบุ่น",
     "visitTime": "",
     "accessLimit": "",
-    "userProblem": ""
+    "userProblem": "",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

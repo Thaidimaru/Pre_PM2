@@ -33,7 +33,9 @@
     "contactPosition": "ปลัด อบต.ศรีสุขสำราญ",
     "contactVillage": "BS ศรีสุขสำราญ",
     "contactPhone": "0981584648",
-    "informantName": "นายรพีพัฒน์ แสงสว่าง"
+    "informantName": "นายรพีพัฒน์ แสงสว่าง",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

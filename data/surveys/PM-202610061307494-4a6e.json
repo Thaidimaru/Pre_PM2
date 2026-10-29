@@ -27,7 +27,9 @@
     "antennaCondition": "ปกติ",
     "workObstacle": "มีฝนฟ้าคะนองในพื้นที่ปฏิบัติงาน",
     "informantName": "นายสามารถ ขออ้อมกลาง",
-    "operatorName": "นายอุทัย หนาดสำโรง"
+    "operatorName": "นายอุทัย หนาดสำโรง",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

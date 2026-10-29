@@ -33,8 +33,10 @@
     "informantName": "นายบังอร ชัยเจริญ",
     "visitTime": "",
     "accessLimit": "",
-    "userProblem": ""
+    "userProblem": "",
+    "round_number": 1
   },
   "photos": [],
-  "updatedAt": "2026-10-22T06:20:37.129Z"
+  "updatedAt": "2026-10-22T06:20:37.129Z",
+  "round_number": 1
 }

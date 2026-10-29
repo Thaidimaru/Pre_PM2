@@ -27,7 +27,9 @@
     "workObstacle": "ไม่มี",
     "informantName": "นายชุมพล งามล้วน",
     "operatorName": "อนุศักดิ์ สมาน",
-    "visitDate": "2026-10-09"
+    "visitDate": "2026-10-09",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

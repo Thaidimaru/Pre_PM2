@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Radio, Bell } from 'lucide-react';
 import { ShinyText } from '@/components/ui/shiny-text';
@@ -8,7 +8,9 @@ import { KpiCards } from './KpiCards';
 import { ProvinceChart } from './ProvinceChart';
 import { SurveyDonut } from './SurveyDonut';
 import { RecentSurveys } from './RecentSurveys';
-import { fetchDashboardData, getCachedDashboardData } from '@/lib/api';
+import { MultiRoundOverview } from './MultiRoundOverview';
+import { PendingStationsChecklist } from './PendingStationsChecklist';
+import { fetchDashboardData, getCachedDashboardData, fetchStations } from '@/lib/api';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 
@@ -118,6 +120,58 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
   );
   const [newSurveyAlert, setNewSurveyAlert] = useState(null);
   const prevCountRef = useRef(data.stats?.surveys || null);
+
+  // Multi-Round Inspection Management: Default active cycle context to Round 1
+  const [selectedRound, setSelectedRound] = useState(1);
+  const [masterStations, setMasterStations] = useState([]);
+
+  useEffect(() => {
+    fetchStations()
+      .then((res) => {
+        if (res && Array.isArray(res.stations)) {
+          setMasterStations(res.stations);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const activeSurveys = useMemo(() => {
+    if (selectedRound === 'all') return data.recent || [];
+    return (data.recent || []).filter((s) => {
+      const rn = Number(s.round_number || s.fields?.round_number || 1);
+      return rn === Number(selectedRound);
+    });
+  }, [data.recent, selectedRound]);
+
+  const activeStats = useMemo(() => {
+    const totalStations = Number(data.stats?.stations) || 197;
+    const count = activeSurveys.length;
+    let allowed = 0;
+    let denied = 0;
+    for (const s of activeSurveys) {
+      const p = s.permit || s.fields?.permit;
+      if (p === 'อนุญาต' || p === 'on') allowed++;
+      else if (p === 'ไม่อนุญาต') denied++;
+    }
+    return {
+      surveys: count,
+      stations: totalStations,
+      allowed,
+      denied,
+      pending: Math.max(totalStations - count, 0),
+    };
+  }, [activeSurveys, data.stats?.stations]);
+
+  const activeProvinces = useMemo(() => {
+    const counts = new Map();
+    for (const s of activeSurveys) {
+      const prov = String(s.province || s.fields?.province || '').trim() || 'ไม่ระบุจังหวัด';
+      counts.set(prov, (counts.get(prov) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [activeSurveys]);
 
   const loadData = useCallback(async (isManual = false) => {
     try {
@@ -349,33 +403,123 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
       ) : (
         <>
           {/* KPI Metric Cards */}
-          <KpiCards stats={data.stats} />
+          {/* Top-Level Round Context & Filter Selector */}
+          <div className={cn(
+            'flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border transition-all shadow-xs',
+            isDark
+              ? 'bg-slate-900/60 border-slate-800'
+              : 'bg-white border-slate-200 shadow-sm'
+          )}>
+            <div className="flex items-center gap-3">
+              <span className={cn(
+                'flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold font-mono border',
+                isDark ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' : 'bg-sky-100 text-sky-700 border-sky-300'
+              )}>
+                {selectedRound === 'all' ? 'ALL' : `R${selectedRound}`}
+              </span>
+              <div>
+                <div className="text-sm font-bold flex items-center gap-2">
+                  <span>
+                    {selectedRound === 'all'
+                      ? 'กำลังแสดงข้อมูล: ทุกรอบการตรวจเยี่ยม (Consolidated Multi-Round View)'
+                      : `กำลังแสดงข้อมูล: รอบการตรวจเยี่ยม ครั้งที่ ${selectedRound}`}
+                  </span>
+                  {selectedRound !== 'all' && (
+                    <span className={cn(
+                      'text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold',
+                      activeStats.pending === 0
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    )}>
+                      {activeStats.surveys}/{activeStats.stations} สถานี ({activeStats.stations > 0 ? ((activeStats.surveys / activeStats.stations) * 100).toFixed(1) : 0}%)
+                    </span>
+                  )}
+                </div>
+                <div className={cn('text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                  {selectedRound === 'all'
+                    ? 'สรุปผลสำรวจและตัวชี้วัดรวมจากทุกรอบการตรวจเยี่ยม'
+                    : activeStats.pending === 0
+                    ? '✓ ดำเนินการตรวจเยี่ยมครบถ้วนทั้ง 197 สถานีแล้วในรอบนี้'
+                    : `มีสถานีค้างดำเนินการอีก ${activeStats.pending} สถานีในรอบนี้ (ดูรายชื่อด้านล่าง)`}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              <label htmlFor="dashboard-round-select" className="text-xs font-semibold whitespace-nowrap">
+                สลับรอบการตรวจเยี่ยม:
+              </label>
+              <select
+                id="dashboard-round-select"
+                value={selectedRound}
+                onChange={(e) => setSelectedRound(e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10))}
+                className={cn(
+                  'px-3 py-1.5 text-xs font-bold rounded-xl border focus:outline-none cursor-pointer',
+                  isDark
+                    ? 'border-cyan-500/40 bg-slate-950 text-cyan-300 hover:border-cyan-400'
+                    : 'border-sky-300 bg-sky-50 text-sky-800 hover:border-sky-400'
+                )}
+              >
+                <option value="all">ทุกรอบการตรวจเยี่ยม (All 18 Rounds)</option>
+                {Array.from({ length: 18 }, (_, i) => i + 1).map((r) => (
+                  <option key={r} value={r}>
+                    รอบที่ {r} (ครั้งที่ {r}) {r === 1 ? '— ครบ 197/197 (100%)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Consolidated 18-Round Progress Overview Grid */}
+          <MultiRoundOverview
+            surveys={data.recent}
+            totalStations={data.stats?.stations || 197}
+            selectedRound={selectedRound}
+            onSelectRound={setSelectedRound}
+          />
+
+          {/* KPI Metric Cards */}
+          <KpiCards stats={activeStats} />
 
           {/* Analytics Row: Province Breakdown & Survey Result Donut */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Province Breakdown (compact & balanced) */}
             <div className="lg:col-span-6">
-              <ProvinceChart provinces={data.provinces} totalSurveys={data.stats?.surveys} />
+              <ProvinceChart provinces={activeProvinces} totalSurveys={activeStats.surveys} />
             </div>
 
             {/* Survey Donut: Proportions aligned relative to total base count with Interactive Drill-Down */}
             <div className="lg:col-span-6">
               <SurveyDonut
-                stats={data.stats}
-                surveys={data.recent}
+                stats={activeStats}
+                surveys={activeSurveys}
                 onNavigate={onNavigate}
                 onEditSurvey={onEditSurvey}
               />
             </div>
           </div>
 
+          {/* Explicit Missing / Pending Stations Checklist for Incomplete Rounds */}
+          {selectedRound !== 'all' && (
+            <div className="w-full">
+              <PendingStationsChecklist
+                selectedRound={selectedRound}
+                masterStations={masterStations}
+                completedSurveys={activeSurveys}
+                onNavigate={onNavigate}
+              />
+            </div>
+          )}
+
           {/* Survey Records & History Table (Full Width) */}
           <div className="w-full">
             <RecentSurveys
-              recent={data.recent}
+              recent={activeSurveys}
               onNavigate={onNavigate}
               onEditSurvey={onEditSurvey}
               onRefresh={() => loadData(true)}
+              selectedRound={selectedRound}
+              onSelectRound={setSelectedRound}
             />
           </div>
         </>

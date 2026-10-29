@@ -48,7 +48,8 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
   const [showReportModal, setShowReportModal] = useState(false);
   const [lastSavedReport, setLastSavedReport] = useState(null);
   const [formData, setFormData] = useState({
-    permit: 'อนุญาต',
+    round_number: 1,
+            permit: 'อนุญาต',
     radioStatus: 'ปกติ',
     receiveStatus: 'ปกติ',
     transmitStatus: 'ปกติ',
@@ -186,6 +187,7 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
       lastAutoFilledStationRef.current = editingSurvey.station || rawFields.station || '';
       setFormData({
         ...rawFields,
+        round_number: Number(editingSurvey.round_number || rawFields.round_number || 1),
         station: editingSurvey.station || rawFields.station || '',
         province: editingSurvey.province || rawFields.province || '',
         district: rawFields.district || '',
@@ -248,6 +250,13 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
       const params = new URLSearchParams(window.location.search);
       const siteIdParam = params.get('siteId');
       const stationParam = params.get('station');
+      const roundParam = params.get('round');
+      if (roundParam) {
+        const parsedR = parseInt(roundParam, 10);
+        if (parsedR >= 1 && parsedR <= 18) {
+          setFormData((prev) => ({ ...prev, round_number: parsedR }));
+        }
+      }
 
       if (siteIdParam || stationParam) {
         let matched = null;
@@ -379,6 +388,7 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
         if (!isEditMode) {
           // Clear form and photo previews for new entries only on true success
           setFormData({
+            round_number: 1,
             permit: 'อนุญาต',
             radioStatus: 'ปกติ',
             receiveStatus: 'ปกติ',
@@ -508,6 +518,40 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
           </div>
 
           <div className="space-y-4">
+            {/* รอบการตรวจเยี่ยม (Inspection Round 1 - 18) */}
+            <div className={cn(
+              'rounded-xl border p-3.5 space-y-1.5 transition-colors mb-4',
+              isDark ? 'border-cyan-500/30 bg-cyan-950/20' : 'border-sky-300 bg-sky-50/60'
+            )}>
+              <div className="flex items-center justify-between">
+                <label htmlFor="round_number" className={cn(labelClass, isDark ? 'text-cyan-300' : 'text-sky-800', 'font-bold mb-0')}>
+                  รอบการตรวจเยี่ยม (Inspection Round) <span className="text-rose-400">*</span>
+                </label>
+                <span className={cn(
+                  'text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold border',
+                  isDark ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' : 'bg-sky-100 text-sky-800 border-sky-300'
+                )}>
+                  รอบที่ {formData.round_number || 1} จาก 18 รอบ
+                </span>
+              </div>
+              <select
+                id="round_number"
+                name="round_number"
+                required
+                value={formData.round_number || 1}
+                onChange={(e) => updateField('round_number', parseInt(e.target.value, 10))}
+                className={cn(inputClass, 'font-medium cursor-pointer')}
+              >
+                {Array.from({ length: 18 }, (_, i) => i + 1).map((roundNum) => (
+                  <option key={roundNum} value={roundNum} className={isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}>
+                    รอบการตรวจเยี่ยม ครั้งที่ {roundNum} (รอบที่ {roundNum})
+                  </option>
+                ))}
+              </select>
+              <p className={cn('text-[11px] leading-tight', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                เลือกรอบการตรวจเยี่ยมตามรอบแผนงาน Pre-PM (รองรับรอบที่ 1 ถึง 18)
+              </p>
+            </div>
             <div>
               <label htmlFor="station" className={labelClass}>
                 ชื่อสถานี <span className="text-rose-400">*</span>

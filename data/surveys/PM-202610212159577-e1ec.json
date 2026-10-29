@@ -33,8 +33,10 @@
     "informantName": "นายพงษ์รัตน์ กงนอก",
     "visitTime": "",
     "accessLimit": "",
-    "userProblem": ""
+    "userProblem": "",
+    "round_number": 1
   },
   "photos": [],
-  "updatedAt": "2026-10-22T04:45:54.484Z"
+  "updatedAt": "2026-10-22T04:45:54.484Z",
+  "round_number": 1
 }

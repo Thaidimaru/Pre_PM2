@@ -34,7 +34,9 @@
     "visitDate": "2026-10-08",
     "visitTime": "",
     "accessLimit": "ไม่มี",
-    "recordId": "PM-202610100031391-872c"
+    "recordId": "PM-202610100031391-872c",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

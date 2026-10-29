@@ -33,7 +33,9 @@
     "contactPosition": "",
     "contactVillage": "",
     "contactPhone": "",
-    "informantName": ""
+    "informantName": "",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

@@ -31,7 +31,9 @@
     "siteCondition": "ปกติ",
     "antennaCondition": "ปกติ",
     "workObstacle": "ไม่มีอุปสรรค",
-    "photos": []
+    "photos": [],
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

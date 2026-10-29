@@ -28,7 +28,9 @@
     "antennaCondition": "ปกติ",
     "workObstacle": "ไม่มี",
     "operatorName": "อนุศักดิ์ สมาน",
-    "informantName": "สุรชัย จอกทอง"
+    "informantName": "สุรชัย จอกทอง",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

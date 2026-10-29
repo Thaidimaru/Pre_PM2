@@ -33,8 +33,10 @@
     "contactVillage": "หมู่ 4 แสงสว่าง",
     "contactPhone": "061-171-4569",
     "informantName": "นายอานนท์ แก่นวงค์",
-    "visitTime": ""
+    "visitTime": "",
+    "round_number": 1
   },
   "photos": [],
-  "updatedAt": "2026-10-22T04:25:14.828Z"
+  "updatedAt": "2026-10-22T04:25:14.828Z",
+  "round_number": 1
 }

@@ -28,7 +28,9 @@
     "workObstacle": "ไม่มี",
     "accessLimit": "",
     "informantName": "นายสุเทพ บุตรนิลพลอย",
-    "operatorName": "อนุศักดิ์ สมาน"
+    "operatorName": "อนุศักดิ์ สมาน",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

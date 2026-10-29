@@ -105,6 +105,7 @@ function formatSurveyRow(row, photos = []) {
     station: row.station,
     province: row.province,
     permit: row.permit,
+    round_number: row.round_number !== undefined && row.round_number !== null ? parseInt(row.round_number, 10) : (fields.round_number ? parseInt(fields.round_number, 10) : 1),
     savedAt: row.saved_at,
     updatedAt: row.updated_at,
     version: row.version || 1,
@@ -114,6 +115,7 @@ function formatSurveyRow(row, photos = []) {
       station: row.station,
       province: row.province,
       permit: row.permit,
+    round_number: row.round_number !== undefined && row.round_number !== null ? parseInt(row.round_number, 10) : (fields.round_number ? parseInt(fields.round_number, 10) : 1),
       photos: surveyPhotos,
     },
     photos: surveyPhotos,
@@ -151,6 +153,7 @@ async function ensureSchema(db) {
         station TEXT NOT NULL,
         province TEXT NOT NULL,
         permit TEXT,
+        round_number INTEGER NOT NULL DEFAULT 1,
         fields_json TEXT NOT NULL,
         deleted_at TEXT DEFAULT NULL
       )`),
@@ -410,7 +413,7 @@ export default {
 
             // Query active surveys for dashboard view
             const { results: recentRows = [] } = await db.prepare(
-              'SELECT record_id, station, province, permit, saved_at, updated_at, fields_json, version FROM surveys WHERE deleted_at IS NULL ORDER BY updated_at DESC'
+              'SELECT record_id, station, province, permit, round_number, saved_at, updated_at, fields_json, version FROM surveys WHERE deleted_at IS NULL ORDER BY updated_at DESC'
             ).all();
 
             let totalSurveys = recentRows.length;
@@ -454,6 +457,18 @@ export default {
               denied,
             };
 
+            const roundsSummary = Array.from({ length: 18 }, (_, idx) => {
+              const rNum = idx + 1;
+              const inRound = recent.filter((r) => (r.round_number || 1) === rNum);
+              return {
+                round: rNum,
+                completed: inRound.length,
+                total: totalStations,
+                allowed: inRound.filter((r) => r.permit === 'อนุญาต' || r.permit === 'on').length,
+                denied: inRound.filter((r) => r.permit === 'ไม่อนุญาต').length,
+              };
+            });
+
             return jsonResponse(
               {
                 ok: true,
@@ -461,6 +476,7 @@ export default {
                 stats,
                 provinces,
                 recent,
+                roundsSummary,
                 surveysCount: totalSurveys,
                 totalSurveys,
                 changeToken,
@@ -697,6 +713,7 @@ export default {
           const station = fields.station || fields.stationSelect || 'ไม่ระบุสถานี';
           const province = fields.province || '';
           const permit = fields.permit === 'on' ? 'อนุญาต' : (fields.permit || 'ยังไม่ระบุ');
+          const roundNumber = parseInt(payload.round_number || fields.round_number || payload.round || fields.round || 1, 10) || 1;
 
           // Clean photos metadata — zero Base64 stored in database
           const formattedPhotos = cleanPhotoMetadata(photos, recordId);
@@ -707,6 +724,7 @@ export default {
             station,
             province,
             permit,
+            round_number: roundNumber,
             photos: formattedPhotos,
           };
           delete cleanFields.data;
@@ -720,6 +738,7 @@ export default {
             station,
             province,
             permit,
+            round_number: roundNumber,
             version: 1,
             fields: cleanFields,
             photos: formattedPhotos,
@@ -733,8 +752,8 @@ export default {
             try {
               const statements = [
                 db.prepare(
-                  'INSERT OR REPLACE INTO surveys (record_id, saved_at, updated_at, version, station, province, permit, fields_json, deleted_at) VALUES (?, ?, ?, 1, ?, ?, ?, ?, NULL)'
-                ).bind(recordId, savedAt, savedAt, station, province, permit, JSON.stringify(cleanFields)),
+                  'INSERT OR REPLACE INTO surveys (record_id, saved_at, updated_at, version, station, province, permit, round_number, fields_json, deleted_at) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, NULL)'
+                ).bind(recordId, savedAt, savedAt, station, province, permit, roundNumber, JSON.stringify(cleanFields)),
               ];
 
               for (const p of formattedPhotos) {
@@ -765,8 +784,8 @@ export default {
                   try {
                     await db.batch([
                       db.prepare(
-                        'INSERT OR REPLACE INTO surveys (record_id, saved_at, updated_at, version, station, province, permit, fields_json, deleted_at) VALUES (?, ?, ?, 1, ?, ?, ?, ?, NULL)'
-                      ).bind(recordId, savedAt, savedAt, station, province, permit, JSON.stringify(cleanFields)),
+                        'INSERT OR REPLACE INTO surveys (record_id, saved_at, updated_at, version, station, province, permit, round_number, fields_json, deleted_at) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, NULL)'
+                      ).bind(recordId, savedAt, savedAt, station, province, permit, roundNumber, JSON.stringify(cleanFields)),
                       db.prepare(
                         "INSERT OR REPLACE INTO meta_sync (key, last_change_timestamp, change_counter) VALUES ('surveys', ?, 1)"
                       ).bind(savedAt),
@@ -880,6 +899,7 @@ export default {
           const station = fields.station || fields.stationSelect || 'ไม่ระบุสถานี';
           const province = fields.province || '';
           const permit = fields.permit === 'on' ? 'อนุญาต' : (fields.permit || 'ยังไม่ระบุ');
+          const roundNumber = parseInt(payload.round_number || fields.round_number || payload.round || fields.round || 1, 10) || 1;
 
           const formattedPhotos = cleanPhotoMetadata(photos, recordId);
           const cleanFields = {
@@ -888,6 +908,7 @@ export default {
             station,
             province,
             permit,
+            round_number: roundNumber,
             photos: formattedPhotos,
           };
           delete cleanFields.data;
@@ -900,6 +921,7 @@ export default {
             station,
             province,
             permit,
+            round_number: roundNumber,
             fields: cleanFields,
             photos: formattedPhotos,
           };
@@ -911,8 +933,8 @@ export default {
             try {
               const statements = [
                 db.prepare(
-                  'UPDATE surveys SET updated_at = ?, station = ?, province = ?, permit = ?, fields_json = ?, version = version + 1 WHERE record_id = ?'
-                ).bind(updatedAt, station, province, permit, JSON.stringify(cleanFields), recordId),
+                  'UPDATE surveys SET updated_at = ?, station = ?, province = ?, permit = ?, round_number = ?, fields_json = ?, version = version + 1 WHERE record_id = ?'
+                ).bind(updatedAt, station, province, permit, roundNumber, JSON.stringify(cleanFields), recordId),
               ];
 
               if (formattedPhotos.length > 0) {

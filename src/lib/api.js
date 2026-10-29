@@ -1265,6 +1265,8 @@ export async function submitSurvey(arg1, arg2, arg3) {
   } else {
     fields = arg1 || {};
     photos = arg2 || [];
+    const roundNumber = Number(fields.round_number || fields.round || 1) || 1;
+    fields = { ...fields, round_number: roundNumber };
   }
 
   let serverResult = null;
@@ -1329,6 +1331,7 @@ export async function submitSurvey(arg1, arg2, arg3) {
       station: stationName,
       province,
       permit,
+      round_number: cleanFields.round_number || 1,
       fields: cleanFields,
       photos: formattedPhotos,
       _isOfflineDraft: true,
@@ -1416,6 +1419,8 @@ export async function updateSurvey(arg1, arg2, arg3) {
     fields = arg1 || {};
     recordId = fields.recordId;
     photos = arg2 || [];
+    const roundNumber = Number(fields.round_number || fields.round || 1) || 1;
+    fields = { ...fields, round_number: roundNumber };
   }
 
   if (!recordId) {
@@ -1480,6 +1485,7 @@ export async function updateSurvey(arg1, arg2, arg3) {
       station: stationName,
       province,
       permit,
+      round_number: cleanFields.round_number || 1,
       fields: cleanFields,
       photos: formattedPhotos,
       _isOfflineDraft: true,

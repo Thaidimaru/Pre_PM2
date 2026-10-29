@@ -33,7 +33,9 @@
     "contactVillage": "หมู่ 10 หนองแวง",
     "contactPhone": "061-097-1924",
     "informantName": "นายอุดร ชาปัญญา",
-    "visitTime": ""
+    "visitTime": "",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

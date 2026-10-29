@@ -33,8 +33,10 @@
     "operatorName": "นายสมสอาด ถาวร",
     "photos": [],
     "recordId": "PM-202610212103335-8c7d",
-    "visitTime": ""
+    "visitTime": "",
+    "round_number": 1
   },
   "photos": [],
-  "updatedAt": "2026-10-22T04:31:16.789Z"
+  "updatedAt": "2026-10-22T04:31:16.789Z",
+  "round_number": 1
 }

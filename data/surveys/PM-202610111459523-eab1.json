@@ -27,7 +27,9 @@
     "antennaCondition": "ปกติ",
     "workObstacle": "ไม่มี",
     "informantName": "นางกัญนิถา น้อยชิน",
-    "operatorName": "อนุศักดิ์ สมาน"
+    "operatorName": "อนุศักดิ์ สมาน",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

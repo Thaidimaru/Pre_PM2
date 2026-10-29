@@ -33,7 +33,9 @@
     "informantName": "นายสาคร สีสอนเหม่น",
     "visitTime": "",
     "accessLimit": "",
-    "workObstacle": "ไม่มี"
+    "workObstacle": "ไม่มี",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

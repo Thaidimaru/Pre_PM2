@@ -30,7 +30,9 @@
     "summary": "-",
     "informantName": "นางอรุณ แก้วสามัคคี",
     "operatorName": "นายอุทัย หนาดสำโรง",
-    "visitTime": "10:30"
+    "visitTime": "10:30",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

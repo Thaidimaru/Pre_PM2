@@ -33,7 +33,9 @@
     "informantName": "นายวินัย เพ็งพิทักษ์",
     "visitTime": "",
     "accessLimit": "",
-    "userProblem": ""
+    "userProblem": "",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

@@ -33,8 +33,10 @@
     "informantName": "นายบัวฮอง แก้วทอง",
     "visitTime": "",
     "accessLimit": "",
-    "userProblem": ""
+    "userProblem": "",
+    "round_number": 1
   },
   "photos": [],
-  "updatedAt": "2026-10-22T04:46:56.489Z"
+  "updatedAt": "2026-10-22T04:46:56.489Z",
+  "round_number": 1
 }

@@ -28,7 +28,9 @@
     "workObstacle": "มีฝนตกในพื้นที่",
     "summary": "-",
     "informantName": "นางบงกชศมน คำมี",
-    "operatorName": "นายอุทัย หนาดสำโรง"
+    "operatorName": "นายอุทัย หนาดสำโรง",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

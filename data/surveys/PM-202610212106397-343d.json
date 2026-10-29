@@ -33,8 +33,10 @@
     "contactVillage": "หมู่ 12 คำแคน",
     "contactPhone": "080-650-3279",
     "informantName": "นายธนากร โมกข์ศิริ",
-    "visitTime": ""
+    "visitTime": "",
+    "round_number": 1
   },
   "photos": [],
-  "updatedAt": "2026-10-22T03:44:11.700Z"
+  "updatedAt": "2026-10-22T03:44:11.700Z",
+  "round_number": 1
 }

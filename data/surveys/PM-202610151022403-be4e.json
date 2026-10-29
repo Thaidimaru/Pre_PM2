@@ -30,7 +30,9 @@
     "antennaCondition": "ปกติ",
     "siteCondition": "ปกติ",
     "userProblem": "ไม่มี",
-    "photos": []
+    "photos": [],
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

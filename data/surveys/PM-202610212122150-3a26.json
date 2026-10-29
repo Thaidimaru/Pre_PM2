@@ -33,8 +33,10 @@
     "contactVillage": "หมู่ 10 วังน้ำทิพย์",
     "contactPhone": "094-616-9279",
     "informantName": "นายปราการ ประโสกัง",
-    "visitTime": ""
+    "visitTime": "",
+    "round_number": 1
   },
   "photos": [],
-  "updatedAt": "2026-10-22T04:26:42.269Z"
+  "updatedAt": "2026-10-22T04:26:42.269Z",
+  "round_number": 1
 }

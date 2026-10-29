@@ -14,12 +14,14 @@ CREATE TABLE IF NOT EXISTS surveys (
     station TEXT NOT NULL,
     province TEXT NOT NULL,
     permit TEXT,
+    round_number INTEGER NOT NULL DEFAULT 1,
     fields_json TEXT NOT NULL,
     deleted_at TEXT DEFAULT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_surveys_updated_at ON surveys (updated_at);
 CREATE INDEX IF NOT EXISTS idx_surveys_station ON surveys (station);
+CREATE INDEX IF NOT EXISTS idx_surveys_round_number ON surveys (round_number);
 CREATE INDEX IF NOT EXISTS idx_surveys_deleted_at ON surveys (deleted_at);
 
 -- ------------------------------------------------------------------------------

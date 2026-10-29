@@ -28,7 +28,9 @@
     "antennaCondition": "ปกติ",
     "workObstacle": "ไม่มี",
     "informantName": "นายจารุพัฒน์ ตาดทอง",
-    "operatorName": "นายอุทัย หนาดสำโรง"
+    "operatorName": "นายอุทัย หนาดสำโรง",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

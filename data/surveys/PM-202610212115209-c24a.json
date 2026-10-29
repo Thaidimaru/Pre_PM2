@@ -33,7 +33,9 @@
     "contactPhone": "065-960-3134",
     "informantName": "นายทองเดช วงษาหาร",
     "visitTime": "",
-    "accessLimit": ""
+    "accessLimit": "",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

@@ -33,7 +33,9 @@
     "contactPhone": "093-482-1239",
     "informantName": "นายทางสุข ประโสกัง",
     "visitTime": "",
-    "userProblem": ""
+    "userProblem": "",
+    "round_number": 1
   },
-  "photos": []
+  "photos": [],
+  "round_number": 1
 }

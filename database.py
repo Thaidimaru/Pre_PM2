@@ -220,6 +220,10 @@ class DatabaseService:
                 conn.execute("ALTER TABLE stations ADD COLUMN contact_phone TEXT")
             if "house_no" not in existing_cols:
                 conn.execute("ALTER TABLE stations ADD COLUMN house_no TEXT")
+            cursor.execute("PRAGMA table_info(surveys)")
+            existing_survey_cols = {c[1] for c in cursor.fetchall()}
+            if "round_number" not in existing_survey_cols:
+                conn.execute("ALTER TABLE surveys ADD COLUMN round_number INTEGER NOT NULL DEFAULT 1")
 
             # Synchronize stations from DATABASE.xlsx and AGWBS.xlsx
             cls._sync_stations(conn)
@@ -372,12 +376,14 @@ class DatabaseService:
                         path.stat().st_mtime, dt.timezone.utc
                     ).isoformat()
                     fields = record.get("fields", {})
+                    round_number = int(record.get("round_number") or fields.get("round_number") or 1)
                     conn.execute("""
-                        INSERT INTO surveys(record_id, saved_at, fields_json) VALUES (?, ?, ?)
+                        INSERT INTO surveys(record_id, saved_at, fields_json, round_number) VALUES (?, ?, ?, ?)
                         ON CONFLICT(record_id) DO UPDATE SET
                             saved_at = excluded.saved_at,
-                            fields_json = excluded.fields_json
-                    """, (record_id, saved_at, json.dumps(fields, ensure_ascii=False)))
+                            fields_json = excluded.fields_json,
+                            round_number = excluded.round_number
+                    """, (record_id, saved_at, json.dumps(fields, ensure_ascii=False), round_number))
                     s_row = conn.execute("SELECT id FROM surveys WHERE record_id = ?", (record_id,)).fetchone()
                     if s_row:
                         s_id = s_row[0]
