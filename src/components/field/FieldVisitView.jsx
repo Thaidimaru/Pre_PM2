@@ -35,7 +35,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { fetchStations, submitSurvey, updateSurvey, normalizeStationKey, githubErrorText, isLocalApiRateLimited, isStaticHost } from '@/lib/api';
+import { fetchStations, submitSurvey, updateSurvey, normalizeStationKey, findStationByName, githubErrorText, isLocalApiRateLimited, isStaticHost } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 import { SurveyReportModal } from '@/components/export/SurveyReportModal';
 import { Printer, FileText, LayoutDashboard } from 'lucide-react';
@@ -231,11 +231,61 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
       });
       setSelectedPhotos(formatted);
       setStatusMessage({
-        text: `อยู่ในโหมดแก้ไขข้อมูลสถานี ${editingSurvey.station || rawFields.station || ''} (รหัส: ${editingSurvey.recordId})`,
+        text: isEditMode
+          ? `อยู่ในโหมดแก้ไขข้อมูลสถานี ${editingSurvey.station || rawFields.station || ''} (รหัส: ${editingSurvey.recordId})`
+          : `เตรียมพร้อมบันทึกข้อมูลการตรวจเยี่ยมสถานี ${editingSurvey.station || rawFields.station || ''}`,
         type: 'info'
       });
     }
-  }, [editingSurvey]);
+  }, [editingSurvey, isEditMode]);
+
+  // Option B Support: Auto-fill station from URL query params (e.g. ?siteId=SITE-001 or ?station=...)
+  useEffect(() => {
+    if (editingSurvey) return;
+    if (typeof window === 'undefined' || !window.location.search) return;
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const siteIdParam = params.get('siteId');
+      const stationParam = params.get('station');
+
+      if (siteIdParam || stationParam) {
+        let matched = null;
+        if (stationParam) {
+          matched = findStationByName(stationParam);
+        }
+        if (!matched && siteIdParam) {
+          const numMatch = siteIdParam.match(/\d+/);
+          const targetId = numMatch ? parseInt(numMatch[0], 10) : null;
+          if (targetId && stations.length > 0) {
+            matched = stations.find((st, idx) => st.id === targetId || idx + 1 === targetId);
+          }
+        }
+
+        if (matched) {
+          const v = matched.village || matched.station || stationParam || '';
+          setFormData((prev) => ({
+            ...prev,
+            station: v,
+            province: matched.province || prev.province || '',
+            district: matched.district || prev.district || '',
+            subdistrict: matched.subdistrict || prev.subdistrict || '',
+            installationPlace: matched.installation_place || matched.installationPlace || prev.installationPlace || '',
+            equipmentPlace: matched.equipment_place || matched.equipmentPlace || prev.equipmentPlace || '',
+            contactName: sanitizePii(matched.contact_name || matched.contactName || prev.contactName),
+            contactPosition: sanitizePii(matched.contact_position || matched.contactPosition || prev.contactPosition),
+            contactPhone: sanitizePii(matched.contact_phone || matched.contactPhone || prev.contactPhone),
+          }));
+          setStatusMessage({
+            text: `เตรียมพร้อมบันทึกข้อมูลการตรวจเยี่ยมสถานี ${v} (${siteIdParam || 'รหัสสถานี'})`,
+            type: 'info',
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Could not parse query params in FieldVisitView:', err);
+    }
+  }, [editingSurvey, stations]);
 
   const handleRemovePhoto = (index) => {
     setSelectedPhotos((prev) => prev.filter((_, i) => i !== index));

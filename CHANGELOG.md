@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.15.9] - 2026-10-29
+
+### Fixed
+- **แก้ไขปุ่ม "ดูข้อมูล" (View Details) ไม่ตอบสนอง และพัฒนาระบบ Survey Detail Modal Routing (`src/components/dashboard/SurveyDrillDownModal.jsx`, `src/components/dashboard/SurveyPreviewModal.jsx`)**:
+  - **แก้ไขปัญหา Stacking Context & Portal Layering ที่ทำให้ Modal แสดงผลซ่อนอยู่เบื้องหลัง**:
+    - ยกระดับ `SurveyPreviewModal` ให้ใช้ `createPortal(..., document.body)` พร้อมระดับเลเยอร์ `z-[70]` ทำให้หน้าต่างรายละเอียดสถานีเปิดแสดงผลทับซ้อนหน้าต่างเจาะลึกสถานี (`SurveyDrillDownModal` ที่มี `z-50`) ได้อย่างราบรื่น
+    - เพิ่มการปิด Modal ผ่านปุ่ม `Escape`, การคลิก Backdrop ด้านนอก และการล็อก Scrollbar ของเบราว์เซอร์ (`overflow: hidden`) ขณะเปิดดู
+    - ปรับปรุง Photo Lightbox ให้ใช้เลเยอร์ `z-[80]` ป้องกันปัญหา Dialog ซ้อนทับกัน
+  - **ปรับปรุง Event Handler และการสกัดข้อมูลของปุ่ม "ดูข้อมูล" ในตารางสถานี**:
+    - สร้างฟังก์ชัน `handleViewDetails` ผูกกับปุ่ม "ดูข้อมูล" และชื่อสถานี สกัดข้อมูลแถวอย่างครบถ้วนทั้ง `siteId`, ชื่อสถานี, สถานที่ติดตั้ง, พิกัดจังหวัด/อำเภอ, ข้อมูลผู้ประสานงาน และผลสำรวจ
+    - เพิ่ม Visual Feedback ทันทีเมื่อคลิก: สถานะกดปุ่ม (`active:scale-95`), ไอคอนหมุนโหลดข้อมูล (`Loader2`) และป้องกันการคลิกซ้ำระหว่างเรนเดอร์
+  - **ระบบรองรับสถานีที่ยังไม่ได้ลงพื้นที่ (Defensive Fallbacks for Unvisited Stations)**:
+    - ตรวจจับสถานะสถานีรอตรวจ (`isUnvisited`) โดยไม่แสดงข้อมูลผลประเมินอุปกรณ์หลอกที่เคยตั้งค่าเริ่มต้นเป็น "ปกติ"
+    - แสดงการ์ดสถานะ Clean Empty State แจ้งชัดเจนว่า "ยังไม่มีประวัติการบันทึกข้อมูลการตรวจเยี่ยมภาคสนามสำหรับสถานีนี้" พร้อมปุ่มด่วน "เริ่มลงพื้นที่สำรวจสถานีนี้ (Start Field Visit)"
+    - ตารางรายชื่อสถานีสำหรับแถวที่ยังไม่ได้ลงพื้นที่ มีทั้งปุ่ม "ดูข้อมูล" เพื่อตรวจข้อมูลผู้ประสานงาน และปุ่ม "ลงพื้นที่" เพื่อเปิดแบบฟอร์มทันที
+  - **รองรับการนำทางแบบ SPA Navigation (Option B & Direct Route) โดยไม่รีเฟรชหน้า**:
+    - อัปเดต `App.jsx` และ `utils.js` ให้รองรับการนำทางเส้นทาง `/field-visit` และเชื่อมต่อพารามิเตอร์ `?siteId=`
+    - ใน `FieldVisitView.jsx` เพิ่มระบบ Auto-hydration ดึงข้อมูลสถานีตาม `siteId` หรือ `station` จาก URL มากรอกลงแบบฟอร์มให้อัตโนมัติ พร้อมข้อความแจ้งเตือนที่ถูกต้อง
+
 ## [2.15.8] - 2026-10-29
 
 ### Fixed

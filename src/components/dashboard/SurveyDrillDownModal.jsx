@@ -20,6 +20,7 @@ import {
   Phone,
   Building,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
@@ -89,6 +90,7 @@ export function SurveyDrillDownModal({
 
   // Preview Survey Modal State
   const [previewSurvey, setPreviewSurvey] = useState(null);
+  const [loadingRowId, setLoadingRowId] = useState(null);
 
   // Master Station Directory (Loaded from cache or API)
   const [masterStations, setMasterStations] = useState(() => {
@@ -420,6 +422,87 @@ export function SurveyDrillDownModal({
     setCurrentPage(1);
   };
 
+  // Dedicated detail inspection handler extracting complete row & master data safely
+  const handleViewDetails = (item, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const rowKey = item.siteId || item.id;
+    setLoadingRowId(rowKey);
+
+    try {
+      const isSurveyed = Boolean(item.isSurveyed && item.surveyRecord);
+      const baseRecord = item.surveyRecord || {};
+      const baseFields = baseRecord.fields || {};
+
+      const payload = {
+        ...baseRecord,
+        id: item.id,
+        siteId: item.siteId,
+        station: item.stationName,
+        stationName: item.stationName,
+        village: item.stationName,
+        province: item.province,
+        district: item.district,
+        subdistrict: item.subdistrict,
+        installationPlace: item.installationPlace,
+        equipmentPlace: item.equipmentPlace || item.installationPlace,
+        contactName: item.contactName,
+        contactPhone: item.contactPhone,
+        contactPosition: item.contactPosition,
+        status: item.status,
+        statusLabel: item.statusLabel,
+        isSurveyed,
+        masterRecord: item.masterRecord,
+        fields: {
+          ...baseFields,
+          siteId: item.siteId,
+          station: item.stationName,
+          province: item.province,
+          district: item.district,
+          subdistrict: item.subdistrict,
+          installationPlace: item.installationPlace,
+          equipmentPlace: item.equipmentPlace || item.installationPlace,
+          contactName: item.contactName,
+          contactPhone: item.contactPhone,
+          contactPosition: item.contactPosition,
+        },
+        photos: baseRecord.photos || baseFields.photos || [],
+      };
+
+      setPreviewSurvey(payload);
+    } catch (err) {
+      console.error('Error opening survey details:', err);
+    } finally {
+      setTimeout(() => setLoadingRowId(null), 150);
+    }
+  };
+
+  // Direct navigation to start or continue field survey
+  const handleDirectVisit = (item, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    onClose();
+    if (onNavigate) {
+      onNavigate('field', {
+        station: item.stationName,
+        village: item.stationName,
+        province: item.province,
+        district: item.district,
+        subdistrict: item.subdistrict,
+        installationPlace: item.installationPlace,
+        equipmentPlace: item.equipmentPlace || item.installationPlace,
+        contactName: item.contactName,
+        contactPhone: item.contactPhone,
+        contactPosition: item.contactPosition,
+        siteId: item.siteId,
+      });
+    }
+  };
+
   const activeConfig = CATEGORY_CONFIG[activeTab] || CATEGORY_CONFIG.total;
   const ActiveIcon = activeConfig.icon;
 
@@ -725,14 +808,17 @@ export function SurveyDrillDownModal({
                           {/* Station Name & Installation Location */}
                           <td className="py-3 px-4">
                             <div className="flex flex-col gap-0.5">
-                              <span
+                              <button
+                                type="button"
+                                onClick={(e) => handleViewDetails(item, e)}
                                 className={cn(
-                                  'font-bold text-sm tracking-tight leading-snug',
-                                  isDark ? 'text-white' : 'text-slate-900'
+                                  'text-left font-bold text-sm tracking-tight leading-snug cursor-pointer transition-colors',
+                                  isDark ? 'text-white hover:text-sky-300' : 'text-slate-900 hover:text-sky-600'
                                 )}
+                                title="คลิกเพื่อดูรายละเอียดสถานี"
                               >
                                 {item.stationName}
-                              </span>
+                              </button>
 
                               <div className="flex items-center gap-2 text-[11px] opacity-75 flex-wrap">
                                 {item.installationPlace && item.installationPlace !== '-' && (
@@ -853,48 +939,59 @@ export function SurveyDrillDownModal({
                             {item.isSurveyed && item.surveyRecord ? (
                               <button
                                 type="button"
-                                onClick={() => setPreviewSurvey(item.surveyRecord)}
+                                onClick={(e) => handleViewDetails(item, e)}
+                                disabled={loadingRowId === (item.siteId || item.id)}
                                 className={cn(
-                                  'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                                  'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95',
                                   isDark
                                     ? 'border-sky-500/30 bg-sky-950/40 text-sky-300 hover:bg-sky-600/30 hover:border-sky-400 hover:text-white'
                                     : 'border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 hover:border-sky-400'
                                 )}
                                 title="ดูรายละเอียดข้อมูลการสำรวจและรูปภาพ"
                               >
-                                <FileText className="h-3.5 w-3.5 shrink-0" />
+                                {loadingRowId === (item.siteId || item.id) ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-sky-400" />
+                                ) : (
+                                  <FileText className="h-3.5 w-3.5 shrink-0" />
+                                )}
                                 <span>ดูข้อมูล</span>
                               </button>
                             ) : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  onClose();
-                                  if (onNavigate) {
-                                    onNavigate('field', {
-                                      station: item.stationName,
-                                      village: item.stationName,
-                                      province: item.province,
-                                      district: item.district,
-                                      subdistrict: item.subdistrict,
-                                      installationPlace: item.installationPlace,
-                                      contactName: item.contactName,
-                                      contactPhone: item.contactPhone,
-                                      contactPosition: item.contactPosition,
-                                    });
-                                  }
-                                }}
-                                className={cn(
-                                  'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer shadow-2xs',
-                                  isDark
-                                    ? 'border-purple-500/40 bg-purple-950/40 text-purple-300 hover:bg-purple-600/30 hover:border-purple-400 hover:text-white'
-                                    : 'border-purple-300 bg-purple-50 text-purple-800 hover:bg-purple-100 hover:border-purple-400'
-                                )}
-                                title="เปิดแบบฟอร์มลงพื้นที่สำรวจสถานีนี้"
-                              >
-                                <ArrowRight className="h-3.5 w-3.5 shrink-0" />
-                                <span>ลงพื้นที่</span>
-                              </button>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleViewDetails(item, e)}
+                                  disabled={loadingRowId === (item.siteId || item.id)}
+                                  className={cn(
+                                    'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95',
+                                    isDark
+                                      ? 'border-slate-700 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:border-slate-500 hover:text-white'
+                                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:border-slate-400'
+                                  )}
+                                  title="ดูข้อมูลสถานีและผู้ประสานงาน"
+                                >
+                                  {loadingRowId === (item.siteId || item.id) ? (
+                                    <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                                  ) : (
+                                    <FileText className="h-3 w-3 shrink-0" />
+                                  )}
+                                  <span>ดูข้อมูล</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDirectVisit(item, e)}
+                                  className={cn(
+                                    'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95',
+                                    isDark
+                                      ? 'border-purple-500/40 bg-purple-950/40 text-purple-300 hover:bg-purple-600/30 hover:border-purple-400 hover:text-white'
+                                      : 'border-purple-300 bg-purple-50 text-purple-800 hover:bg-purple-100 hover:border-purple-400'
+                                  )}
+                                  title="เปิดแบบฟอร์มลงพื้นที่สำรวจสถานีนี้ทันที"
+                                >
+                                  <ArrowRight className="h-3 w-3 shrink-0" />
+                                  <span>ลงพื้นที่</span>
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -1047,6 +1144,25 @@ export function SurveyDrillDownModal({
           isOpen={Boolean(previewSurvey)}
           onClose={() => setPreviewSurvey(null)}
           surveyData={previewSurvey}
+          onStartSurvey={(st) => {
+            setPreviewSurvey(null);
+            onClose();
+            if (onNavigate) {
+              onNavigate('field', {
+                station: st.station || st.stationName,
+                village: st.station || st.stationName,
+                province: st.province,
+                district: st.district,
+                subdistrict: st.subdistrict,
+                installationPlace: st.installationPlace,
+                equipmentPlace: st.equipmentPlace,
+                contactName: st.contactName,
+                contactPhone: st.contactPhone,
+                contactPosition: st.contactPosition,
+                siteId: st.siteId,
+              });
+            }
+          }}
           onEdit={(survey) => {
             setPreviewSurvey(null);
             onClose();

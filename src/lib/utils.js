@@ -33,6 +33,7 @@ export function getAppRoute(pathname = typeof window !== 'undefined' ? window.lo
   const clean = normalized.replace(/\/+$/, '') || '/';
   if (clean === '/dashboard') return 'dashboard';
   if (clean === '/login') return 'login';
+  if (clean === '/field' || clean === '/field-visit') return 'field';
   return 'field';
 }
 

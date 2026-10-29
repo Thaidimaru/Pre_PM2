@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Radio as RadioIcon,
@@ -21,8 +22,10 @@ import {
   ExternalLink,
   Pencil,
   Trash2,
+  ArrowRight,
+  Loader2,
+  Building,
 } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { findStationByName } from '@/lib/api';
@@ -51,6 +54,7 @@ export function SurveyPreviewModal({
   onOpenOfficialReport,
   onEdit,
   onDelete,
+  onStartSurvey,
 }) {
   const { isDark } = useTheme();
   const [copied, setCopied] = useState(false);
@@ -59,6 +63,12 @@ export function SurveyPreviewModal({
   const rawFields = surveyData.fields || {};
   const fields = { ...surveyData, ...rawFields };
   const recordId = surveyData.recordId || fields.recordId || fields.record_id || '-';
+
+  // Determine if this is an unvisited station record
+  const isUnvisited =
+    surveyData.isSurveyed === false ||
+    surveyData.status === 'unvisited' ||
+    ((!recordId || recordId === '-') && !fields.permit && !fields.visitDate && !fields.visit_date);
 
   // Photos with full base64 data resolution
   const rawPhotos = Array.isArray(surveyData.photos) && surveyData.photos.length > 0
@@ -95,9 +105,8 @@ export function SurveyPreviewModal({
   }, [surveyData]);
 
   // Preload photos from GitHub raw JSON if missing base64 or running on static hosting
-  // NOTE: ต้องไม่ผูก dependency กับ resolvedPhotos ไม่งั้น setResolvedPhotos ข้างในจะ trigger ตัวเองวนไม่จบ
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isUnvisited) return;
     if (!recordId || recordId === '-') return;
 
     const hasMissingDataUrl = resolvedPhotos.some((p) => !p.dataUrl);
@@ -143,7 +152,33 @@ export function SurveyPreviewModal({
       cancelled = true;
       if (controller) controller.abort();
     };
-  }, [isOpen, recordId]);
+  }, [isOpen, recordId, isUnvisited]);
+
+  // Escape key to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (activePhoto) {
+          setActivePhoto(null);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, activePhoto]);
+
+  // Prevent background body scroll when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -151,6 +186,11 @@ export function SurveyPreviewModal({
 
   const stationName = fields.station || fields.village || fields.stationSelect || surveyData.station || 'สถานีวิทยุคมนาคม NBTC Microwave';
   const stationLookup = findStationByName(stationName);
+
+  const siteId =
+    surveyData.siteId ||
+    fields.siteId ||
+    (stationLookup?.id ? `SITE-${String(stationLookup.id).padStart(3, '0')}` : null);
 
   const province = fields.province || surveyData.province || stationLookup?.province || '';
   const district = fields.district || surveyData.district || stationLookup?.district || '';
@@ -177,8 +217,8 @@ export function SurveyPreviewModal({
 
   // Visit Date & Time
   const rawDate = fields.visitDate || fields.visit_date || fields.savedAt || surveyData.savedAt;
-  let visitDateStr = '-';
-  if (rawDate) {
+  let visitDateStr = isUnvisited ? 'ยังไม่ได้ลงพื้นที่' : '-';
+  if (rawDate && !isUnvisited) {
     try {
       const dateObj = typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
         ? new Date(`${rawDate}T12:00:00`)
@@ -194,11 +234,13 @@ export function SurveyPreviewModal({
   }
 
   const rawTime = fields.visitTime || fields.visit_time;
-  const visitTime = rawTime
-    ? `${rawTime} น.`
-    : (fields.savedAt || surveyData.savedAt
-      ? new Date(fields.savedAt || surveyData.savedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
-      : '-');
+  const visitTime = isUnvisited
+    ? '-'
+    : (rawTime
+      ? `${rawTime} น.`
+      : (fields.savedAt || surveyData.savedAt
+        ? new Date(fields.savedAt || surveyData.savedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+        : '-'));
 
   // Helper to sanitize PII (returns fallback if scrubbed or empty)
   const sanitizePii = (val, fallback = '-') => {
@@ -215,11 +257,11 @@ export function SurveyPreviewModal({
   const contactPhone = sanitizePii(fields.contactPhone || fields.contact_phone || fields.phone || fields.tel || stationLookup?.contact_phone || stationLookup?.contactPhone, '-');
 
   // Permission
-  const permit = fields.permit || surveyData.permit || 'อนุญาต';
-  const isPermitted = permit === 'อนุญาต' || permit === 'on' || permit === 'true' || permit === true;
-  const accessLimit = fields.accessLimit || fields.access_limit || 'ไม่มีข้อจำกัด';
+  const permit = isUnvisited ? 'ยังไม่ได้ขออนุญาต' : (fields.permit || surveyData.permit || 'อนุญาต');
+  const isPermitted = !isUnvisited && (permit === 'อนุญาต' || permit === 'on' || permit === 'true' || permit === true);
+  const accessLimit = isUnvisited ? 'รอลงพื้นที่ตรวจสอบเงื่อนไขการเข้าถึง' : (fields.accessLimit || fields.access_limit || 'ไม่มีข้อจำกัด');
 
-  // Assessment fields
+  // Assessment fields (only relevant when surveyed)
   const radioStatus = fields.radioStatus || fields.radio_status || 'ปกติ';
   const isRadioNormal = radioStatus === 'ปกติ';
 
@@ -246,8 +288,6 @@ export function SurveyPreviewModal({
   const summary = fields.summary || fields.userSummary || 'เจ้าของพื้นที่ให้ความร่วมมือในการเข้าตรวจเยี่ยมและตรวจสอบสภาพระบบอุปกรณ์เป็นอย่างดี';
   const informantName = sanitizePii(fields.informantName || fields.informant_name || (contactName !== '-' ? contactName : ''), '-');
   const operatorName = sanitizePii(fields.operatorName || fields.operator_name || fields.surveyorName, 'วิศวกรผู้ควบคุมงาน');
-
-
 
   // Format file size
   const formatSize = (bytes) => {
@@ -304,8 +344,16 @@ export function SurveyPreviewModal({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
+  const modalContent = (
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-md overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="preview-modal-title"
+    >
       {/* Modal Container */}
       <div
         className={cn(
@@ -322,61 +370,121 @@ export function SurveyPreviewModal({
             isDark ? 'border-slate-800 bg-slate-950/90' : 'border-slate-200 bg-slate-50'
           )}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div
               className={cn(
                 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border',
-                isDark
-                  ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
-                  : 'bg-sky-100 text-sky-600 border-sky-200'
+                isUnvisited
+                  ? isDark
+                    ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                    : 'bg-purple-100 text-purple-700 border-purple-200'
+                  : isDark
+                    ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+                    : 'bg-sky-100 text-sky-600 border-sky-200'
               )}
             >
               <RadioIcon className="h-5 w-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className={cn('text-base font-bold truncate', isDark ? 'text-white' : 'text-slate-900')}>
+                <h3 id="preview-modal-title" className={cn('text-base font-bold truncate', isDark ? 'text-white' : 'text-slate-900')}>
                   {stationName}
                 </h3>
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold border',
-                    isPermitted
-                      ? isDark
-                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                        : 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                      : isDark
-                        ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
-                        : 'bg-rose-50 border-rose-300 text-rose-700'
-                  )}
-                >
-                  {isPermitted ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                  {isPermitted ? 'อนุญาตเข้าพื้นที่' : 'ไม่อนุญาต'}
-                </span>
+                {siteId && (
+                  <span
+                    className={cn(
+                      'inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[11px] font-semibold border',
+                      isDark
+                        ? 'bg-slate-800/90 border-slate-700 text-slate-300'
+                        : 'bg-slate-100 border-slate-300 text-slate-700'
+                    )}
+                  >
+                    {siteId}
+                  </span>
+                )}
+                {isUnvisited ? (
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold border',
+                      isDark
+                        ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
+                        : 'bg-purple-50 border-purple-300 text-purple-800'
+                    )}
+                  >
+                    <Clock className="h-3 w-3" />
+                    <span>ยังไม่ได้ลงพื้นที่ / รอตรวจ</span>
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold border',
+                      isPermitted
+                        ? isDark
+                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                          : 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                        : isDark
+                          ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
+                          : 'bg-rose-50 border-rose-300 text-rose-700'
+                    )}
+                  >
+                    {isPermitted ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                    <span>{isPermitted ? 'อนุญาตเข้าพื้นที่' : 'ไม่อนุญาต'}</span>
+                  </span>
+                )}
               </div>
-              <div className={cn('flex items-center gap-2 text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
-                <span>รหัสรายการ:</span>
-                <span className={cn('font-mono font-semibold', isDark ? 'text-cyan-400' : 'text-sky-600')}>{recordId}</span>
-                <button
-                  type="button"
-                  onClick={handleCopyRecordId}
-                  className={cn('p-1 transition-colors cursor-pointer', isDark ? 'hover:text-white' : 'hover:text-slate-900')}
-                  title="คัดลอกรหัสรายการ"
-                >
-                  {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                </button>
-              </div>
+
+              {isUnvisited ? (
+                <div className={cn('flex items-center gap-2 text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                  <span>สถานะ:</span>
+                  <span className={cn('font-semibold', isDark ? 'text-purple-300' : 'text-purple-700')}>รอการลงพื้นที่ตรวจเยี่ยมภาคสนาม</span>
+                </div>
+              ) : (
+                <div className={cn('flex items-center gap-2 text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                  <span>รหัสรายการ:</span>
+                  <span className={cn('font-mono font-semibold', isDark ? 'text-cyan-400' : 'text-sky-600')}>{recordId}</span>
+                  <button
+                    type="button"
+                    onClick={handleCopyRecordId}
+                    className={cn('p-1 transition-colors cursor-pointer', isDark ? 'hover:text-white' : 'hover:text-slate-900')}
+                    title="คัดลอกรหัสรายการ"
+                  >
+                    {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-            {/* Edit Button */}
-            {onEdit && (
+            {/* Quick Action for Unvisited Station */}
+            {isUnvisited && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  if (onStartSurvey) onStartSurvey(surveyData);
+                  else if (onEdit) onEdit(surveyData);
+                }}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
+                  isDark
+                    ? 'border-purple-500/40 bg-purple-600/25 text-purple-300 hover:bg-purple-600/40 hover:border-purple-400 hover:text-white'
+                    : 'border-purple-300 bg-purple-50 text-purple-800 hover:bg-purple-100 hover:border-purple-400'
+                )}
+                title="เริ่มลงพื้นที่สำรวจสถานีนี้"
+              >
+                <ArrowRight className="h-3.5 w-3.5" />
+                <span>เริ่มลงพื้นที่</span>
+              </button>
+            )}
+
+            {/* Edit Button for Surveyed Station */}
+            {!isUnvisited && onEdit && (
               <button
                 type="button"
                 onClick={() => onEdit(surveyData)}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs',
+                  'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
                   isDark
                     ? 'border-amber-500/40 bg-amber-600/20 text-amber-300 hover:bg-amber-600/30 hover:border-amber-400 hover:text-white'
                     : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-400'
@@ -388,13 +496,13 @@ export function SurveyPreviewModal({
               </button>
             )}
 
-            {/* Delete Button */}
-            {onDelete && (
+            {/* Delete Button for Surveyed Station */}
+            {!isUnvisited && onDelete && (
               <button
                 type="button"
                 onClick={() => onDelete(surveyData)}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs',
+                  'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
                   isDark
                     ? 'border-rose-500/40 bg-rose-600/20 text-rose-300 hover:bg-rose-600/30 hover:border-rose-400 hover:text-white'
                     : 'border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 hover:border-rose-400'
@@ -406,8 +514,8 @@ export function SurveyPreviewModal({
               </button>
             )}
 
-            {/* Official Report A4 Modal Button */}
-            {onOpenOfficialReport && (
+            {/* Official Report A4 Modal Button for Surveyed Station */}
+            {!isUnvisited && onOpenOfficialReport && (
               <button
                 type="button"
                 onClick={() => {
@@ -415,7 +523,7 @@ export function SurveyPreviewModal({
                   onOpenOfficialReport(surveyData);
                 }}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs',
+                  'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95',
                   isDark
                     ? 'border-blue-500/30 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 hover:border-blue-400 hover:text-white'
                     : 'border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-400'
@@ -436,7 +544,8 @@ export function SurveyPreviewModal({
                   ? 'border-slate-700 bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
                   : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-900'
               )}
-              title="ปิดหน้าต่าง"
+              title="ปิดหน้าต่าง (Esc)"
+              aria-label="ปิดหน้าต่าง"
             >
               <X className="h-5 w-5" />
             </button>
@@ -450,7 +559,6 @@ export function SurveyPreviewModal({
             isDark ? 'bg-gradient-to-b from-slate-900/60 to-slate-950' : 'bg-slate-100/60'
           )}
         >
-
           {/* Section 1: Station & Location Details */}
           <div className={sectionCardClass}>
             <h4 className={sectionTitleClass}>
@@ -491,11 +599,11 @@ export function SurveyPreviewModal({
           <div className={sectionCardClass}>
             <h4 className={sectionTitleClass}>
               <User className={cn('h-4 w-4', sectionIconClass)} />
-              <span>2. ข้อมูลผู้ให้ข้อมูล / เจ้าของพื้นที่ และการขออนุญาต (Site Owner & Permission)</span>
+              <span>2. ข้อมูลผู้ให้ข้อมูล / ผู้ประสานงาน และสิทธิ์การเข้าพื้นที่ (Coordinator & Permission)</span>
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
               <div>
-                <span className={cn('block mb-0.5', labelClass)}>ชื่อ - สกุล</span>
+                <span className={cn('block mb-0.5', labelClass)}>ชื่อ - สกุล ผู้ประสานงาน</span>
                 <span className={cn('font-semibold text-sm', valBoldClass)}>{contactName}</span>
               </div>
               <div>
@@ -507,11 +615,12 @@ export function SurveyPreviewModal({
                 <span className={cn('font-medium', valMediumClass)}>{contactVillage}</span>
               </div>
               <div>
-                <span className={cn('block mb-0.5', labelClass)}>เบอร์โทรศัพท์</span>
+                <span className={cn('block mb-0.5', labelClass)}>เบอร์โทรศัพท์ติดต่อ</span>
                 {contactPhone && contactPhone !== '-' ? (
                   <a
                     href={`tel:${contactPhone.replace(/\s+/g, '')}`}
-                    className={cn('font-mono hover:underline flex items-center gap-1', isDark ? 'text-cyan-400' : 'text-sky-600')}
+                    className={cn('font-mono hover:underline flex items-center gap-1 font-semibold', isDark ? 'text-cyan-400' : 'text-sky-600')}
+                    title="คลิกเพื่อโทรออก"
                   >
                     <Phone className="h-3.5 w-3.5" />
                     {contactPhone}
@@ -521,128 +630,193 @@ export function SurveyPreviewModal({
                 )}
               </div>
               <div>
-                <span className="text-slate-400 block mb-0.5">ผลการขออนุญาตเข้าพื้นที่</span>
-                <span className={`inline-flex items-center gap-1.5 font-semibold px-2.5 py-0.5 rounded-lg text-xs ${isPermitted ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                  }`}>
-                  {isPermitted ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
-                  <span>{isPermitted ? 'อนุญาตให้เข้าพื้นที่' : 'ไม่อนุญาตให้เข้าพื้นที่'}</span>
-                </span>
+                <span className={cn('block mb-0.5', labelClass)}>สถานะการขออนุญาตเข้าพื้นที่</span>
+                {isUnvisited ? (
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 font-semibold px-2.5 py-0.5 rounded-lg text-xs border',
+                      isDark ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' : 'bg-purple-50 text-purple-800 border-purple-200'
+                    )}
+                  >
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>ยังไม่ได้ขออนุญาต / รอตรวจ</span>
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 font-semibold px-2.5 py-0.5 rounded-lg text-xs border',
+                      isPermitted
+                        ? isDark
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : isDark
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                          : 'bg-rose-50 text-rose-800 border-rose-200'
+                    )}
+                  >
+                    {isPermitted ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                    <span>{isPermitted ? 'อนุญาตให้เข้าพื้นที่' : 'ไม่อนุญาตให้เข้าพื้นที่'}</span>
+                  </span>
+                )}
               </div>
               <div>
-                <span className="text-slate-400 block mb-0.5">ข้อจำกัดในการเข้าพื้นที่</span>
-                <span className="font-medium text-slate-200">{accessLimit}</span>
+                <span className={cn('block mb-0.5', labelClass)}>ข้อจำกัดในการเข้าพื้นที่</span>
+                <span className={cn('font-medium', valMediumClass)}>{accessLimit}</span>
               </div>
             </div>
           </div>
 
-          {/* Section 3: Equipment Assessment */}
-          <div className={sectionCardClass}>
-            <h4 className={sectionTitleClass}>
-              <ShieldCheck className={cn('h-4 w-4', sectionIconClass)} />
-              <span>3. บันทึกผลการตรวจสอบและประเมินสภาพระบบอุปกรณ์ (Equipment & Operational Assessment)</span>
-            </h4>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead>
-                  <tr className={cn('border-b text-xs font-semibold', isDark ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-600')}>
-                    <th className="py-2 px-2.5">รายการประเมิน</th>
-                    <th className="py-2 px-2.5 text-center">สถานะ</th>
-                    <th className="py-2 px-2.5">รายละเอียด / ข้อสังเกต</th>
-                  </tr>
-                </thead>
-                <tbody className={cn('divide-y', isDark ? 'divide-slate-800/60' : 'divide-slate-200')}>
-                  <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>1. สภาพการทำงานของเครื่องวิทยุคมนาคม</td>
-                    <td className="py-2 px-2.5 text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isRadioNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
-                        }`}>
-                        {isRadioNormal ? 'ปกติ' : 'ไม่ปกติ'}
-                      </span>
-                    </td>
-                    <td className={cn('py-2 px-2.5', labelClass)}>{isRadioNormal ? 'เครื่องวิทยุทำงานปกติ' : 'พบข้อขัดข้องในการใช้งาน'}</td>
-                  </tr>
-                  <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>2. ภาครับ - ส่งสัญญาณ (Receiver & Transmitter Status)</td>
-                    <td className="py-2 px-2.5 text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isSignalNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
-                        }`}>
-                        {isSignalNormal ? 'ปกติ' : 'ไม่ปกติ'}
-                      </span>
-                    </td>
-                    <td className={cn('py-2 px-2.5', labelClass)}>{isSignalNormal ? 'รับและส่งสัญญาณได้ตามปกติ ชัดเจน' : 'พบข้อขัดข้องในการรับหรือส่งสัญญาณ'}</td>
-                  </tr>
-                  <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>3. ระบบไฟฟ้าหลักของสถานี (Power Supply)</td>
-                    <td className="py-2 px-2.5 text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isPowerNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
-                        }`}>
-                        {isPowerNormal ? 'ปกติ' : 'ไม่ปกติ'}
-                      </span>
-                    </td>
-                    <td className={cn('py-2 px-2.5', labelClass)}>{isPowerNormal ? 'ระบบไฟฟ้าจ่ายไฟสม่ำเสมอ' : 'ระบบไฟฟ้าขัดข้อง/ไฟตกบ่อย'}</td>
-                  </tr>
-                  <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>4. แบตเตอรี่สำรอง (Backup Battery)</td>
-                    <td className="py-2 px-2.5 text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isBatteryNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
-                        }`}>
-                        {isBatteryNormal ? 'ปกติ' : 'ไม่ปกติ'}
-                      </span>
-                    </td>
-                    <td className={cn('py-2 px-2.5', labelClass)}>{isBatteryNormal ? 'แบตเตอรี่สำรองพร้อมจ่ายไฟ' : 'แบตเตอรี่เสื่อม/เก็บไฟไม่อยู่'}</td>
-                  </tr>
-                  <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>5. ระบบกราวด์ ( Ground System )</td>
-                    <td className="py-2 px-2.5 text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isGroundNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
-                        }`}>
-                        {isGroundNormal ? 'ปกติ' : 'ไม่ปกติ'}
-                      </span>
-                    </td>
-                    <td className={cn('py-2 px-2.5', labelClass)}>{isGroundNormal ? 'ระบบกราวด์สมบูรณ์ ต่อลงดินเรียบร้อย' : 'ระบบกราวด์มีปัญหา/หลุดหลวม'}</td>
-                  </tr>
-                  <tr>
-                    <td className={cn('py-2 px-2.5 font-medium', labelClass)}>ปัญหาเพิ่มเติมที่ผู้ใช้งานแจ้ง</td>
-                    <td colSpan={2} className={cn('py-2 px-2.5', valMediumClass)}>{userProblem}</td>
-                  </tr>
-                </tbody>
-              </table>
+          {/* Conditional View: Clean Empty State for Unvisited OR Full Assessment for Surveyed */}
+          {isUnvisited ? (
+            /* Clean Empty State Card for Unvisited Station */
+            <div
+              className={cn(
+                'rounded-2xl border p-6 sm:p-8 text-center space-y-4 my-2 transition-colors shadow-sm',
+                isDark
+                  ? 'bg-purple-950/20 border-purple-500/30 text-slate-200'
+                  : 'bg-purple-50/80 border-purple-200 text-slate-800'
+              )}
+            >
+              <div
+                className={cn(
+                  'inline-flex p-3.5 rounded-2xl border mx-auto',
+                  isDark
+                    ? 'bg-purple-500/20 border-purple-500/30 text-purple-300'
+                    : 'bg-purple-100 border-purple-200 text-purple-700'
+                )}
+              >
+                <Clock className="h-8 w-8" />
+              </div>
+              <div className="max-w-md mx-auto space-y-1.5">
+                <h4 className={cn('text-base sm:text-lg font-bold', isDark ? 'text-white' : 'text-slate-900')}>
+                  ยังไม่มีประวัติการบันทึกข้อมูลการตรวจเยี่ยมภาคสนาม
+                </h4>
+                <p className={cn('text-xs sm:text-sm leading-relaxed', isDark ? 'text-slate-400' : 'text-slate-600')}>
+                  สถานี <strong className={isDark ? 'text-white' : 'text-slate-900'}>{stationName}</strong> อยู่ในทะเบียนสถานีวิทยุคมนาคมระบบ Pre-PM เรียบร้อยแล้ว แต่ยังไม่ได้ลงพื้นที่ตรวจเยี่ยมเจ้าของพื้นที่และตรวจสอบสภาพระบบอุปกรณ์
+                </p>
+              </div>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onStartSurvey) onStartSurvey(surveyData);
+                    else if (onEdit) onEdit(surveyData);
+                  }}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-500/25 active:scale-95 transition-all cursor-pointer"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  <span>เริ่มลงพื้นที่สำรวจสถานีนี้ (Start Field Visit)</span>
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Section 3: Equipment Assessment */}
+              <div className={sectionCardClass}>
+                <h4 className={sectionTitleClass}>
+                  <ShieldCheck className={cn('h-4 w-4', sectionIconClass)} />
+                  <span>3. บันทึกผลการตรวจสอบและประเมินสภาพระบบอุปกรณ์ (Equipment & Operational Assessment)</span>
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className={cn('border-b text-xs font-semibold', isDark ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-600')}>
+                        <th className="py-2 px-2.5">รายการประเมิน</th>
+                        <th className="py-2 px-2.5 text-center">สถานะ</th>
+                        <th className="py-2 px-2.5">รายละเอียด / ข้อสังเกต</th>
+                      </tr>
+                    </thead>
+                    <tbody className={cn('divide-y', isDark ? 'divide-slate-800/60' : 'divide-slate-200')}>
+                      <tr>
+                        <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>1. สภาพการทำงานของเครื่องวิทยุคมนาคม</td>
+                        <td className="py-2 px-2.5 text-center">
+                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isRadioNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                            {isRadioNormal ? 'ปกติ' : 'ไม่ปกติ'}
+                          </span>
+                        </td>
+                        <td className={cn('py-2 px-2.5', labelClass)}>{isRadioNormal ? 'เครื่องวิทยุทำงานปกติ' : 'พบข้อขัดข้องในการใช้งาน'}</td>
+                      </tr>
+                      <tr>
+                        <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>2. ภาครับ - ส่งสัญญาณ (Receiver & Transmitter Status)</td>
+                        <td className="py-2 px-2.5 text-center">
+                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isSignalNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                            {isSignalNormal ? 'ปกติ' : 'ไม่ปกติ'}
+                          </span>
+                        </td>
+                        <td className={cn('py-2 px-2.5', labelClass)}>{isSignalNormal ? 'รับและส่งสัญญาณได้ตามปกติ ชัดเจน' : 'พบข้อขัดข้องในการรับหรือส่งสัญญาณ'}</td>
+                      </tr>
+                      <tr>
+                        <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>3. ระบบไฟฟ้าหลักของสถานี (Power Supply)</td>
+                        <td className="py-2 px-2.5 text-center">
+                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isPowerNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                            {isPowerNormal ? 'ปกติ' : 'ไม่ปกติ'}
+                          </span>
+                        </td>
+                        <td className={cn('py-2 px-2.5', labelClass)}>{isPowerNormal ? 'ระบบไฟฟ้าจ่ายไฟสม่ำเสมอ' : 'ระบบไฟฟ้าขัดข้อง/ไฟตกบ่อย'}</td>
+                      </tr>
+                      <tr>
+                        <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>4. แบตเตอรี่สำรอง (Backup Battery)</td>
+                        <td className="py-2 px-2.5 text-center">
+                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isBatteryNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                            {isBatteryNormal ? 'ปกติ' : 'ไม่ปกติ'}
+                          </span>
+                        </td>
+                        <td className={cn('py-2 px-2.5', labelClass)}>{isBatteryNormal ? 'แบตเตอรี่สำรองพร้อมจ่ายไฟ' : 'แบตเตอรี่เสื่อม/เก็บไฟไม่อยู่'}</td>
+                      </tr>
+                      <tr>
+                        <td className={cn('py-2 px-2.5 font-medium', valMediumClass)}>5. ระบบกราวด์ ( Ground System )</td>
+                        <td className="py-2 px-2.5 text-center">
+                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${isGroundNormal ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                            {isGroundNormal ? 'ปกติ' : 'ไม่ปกติ'}
+                          </span>
+                        </td>
+                        <td className={cn('py-2 px-2.5', labelClass)}>{isGroundNormal ? 'ระบบกราวด์สมบูรณ์ ต่อลงดินเรียบร้อย' : 'ระบบกราวด์มีปัญหา/หลุดหลวม'}</td>
+                      </tr>
+                      <tr>
+                        <td className={cn('py-2 px-2.5 font-medium', labelClass)}>ปัญหาเพิ่มเติมที่ผู้ใช้งานแจ้ง</td>
+                        <td colSpan={2} className={cn('py-2 px-2.5', valMediumClass)}>{userProblem}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-          {/* Section 4: Site Environmental & Summary */}
-          <div className={sectionCardClass}>
-            <h4 className={sectionTitleClass}>
-              <FileText className={cn('h-4 w-4', sectionIconClass)} />
-              <span>4. สภาพแวดล้อมและสรุปผล (Environment & Summary)</span>
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>สภาพพื้นที่ติดตั้งอุปกรณ์</span>
-                <span className={cn('font-medium', valMediumClass)}>{siteCondition}</span>
+              {/* Section 4: Site Environmental & Summary */}
+              <div className={sectionCardClass}>
+                <h4 className={sectionTitleClass}>
+                  <FileText className={cn('h-4 w-4', sectionIconClass)} />
+                  <span>4. สภาพแวดล้อมและสรุปผล (Environment & Summary)</span>
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
+                  <div>
+                    <span className={cn('block mb-0.5', labelClass)}>สภาพพื้นที่ติดตั้งอุปกรณ์</span>
+                    <span className={cn('font-medium', valMediumClass)}>{siteCondition}</span>
+                  </div>
+                  <div>
+                    <span className={cn('block mb-0.5', labelClass)}>สภาพเสาอากาศและสายอากาศ</span>
+                    <span className={cn('font-medium', valMediumClass)}>{antennaCondition}</span>
+                  </div>
+                  <div className="md:col-span-2">
+                    <span className={cn('block mb-0.5', labelClass)}>อุปสรรคและข้อจำกัดในการปฏิบัติงาน</span>
+                    <span className={cn('font-medium', valMediumClass)}>{workObstacle}</span>
+                  </div>
+                  <div className={cn('md:col-span-2 p-3 rounded-lg border transition-colors', isDark ? 'bg-slate-900/60 border-slate-800/80' : 'bg-slate-50 border-slate-200')}>
+                    <span className={cn('block mb-1 font-semibold', labelClass)}>สรุปผลการตรวจเยี่ยมและข้อคิดเห็น</span>
+                    <p className={cn('leading-relaxed', valMediumClass)}>{summary}</p>
+                  </div>
+                  <div>
+                    <span className={cn('block mb-0.5', labelClass)}>ผู้ให้ข้อมูล / เจ้าของพื้นที่</span>
+                    <span className={cn('font-semibold', valBoldClass)}>{informantName !== '-' ? informantName : contactName}</span>
+                  </div>
+                  <div>
+                    <span className={cn('block mb-0.5', labelClass)}>เจ้าหน้าที่ผู้ตรวจเยี่ยม</span>
+                    <span className={cn('font-semibold', valBoldClass)}>{operatorName}</span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>สภาพเสาอากาศและสายอากาศ</span>
-                <span className={cn('font-medium', valMediumClass)}>{antennaCondition}</span>
-              </div>
-              <div className="md:col-span-2">
-                <span className={cn('block mb-0.5', labelClass)}>อุปสรรคและข้อจำกัดในการปฏิบัติงาน</span>
-                <span className={cn('font-medium', valMediumClass)}>{workObstacle}</span>
-              </div>
-              <div className={cn('md:col-span-2 p-3 rounded-lg border transition-colors', isDark ? 'bg-slate-900/60 border-slate-800/80' : 'bg-slate-50 border-slate-200')}>
-                <span className={cn('block mb-1 font-semibold', labelClass)}>สรุปผลการตรวจเยี่ยมและข้อคิดเห็น</span>
-                <p className={cn('leading-relaxed', valMediumClass)}>{summary}</p>
-              </div>
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>ผู้ให้ข้อมูล / เจ้าของพื้นที่</span>
-                <span className={cn('font-semibold', valBoldClass)}>{informantName !== '-' ? informantName : contactName}</span>
-              </div>
-              <div>
-                <span className={cn('block mb-0.5', labelClass)}>เจ้าหน้าที่ผู้ตรวจเยี่ยม</span>
-                <span className={cn('font-semibold', valBoldClass)}>{operatorName}</span>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
 
           {/* Section 5: Uploaded Photos Gallery */}
           <div className={sectionCardClass}>
@@ -650,14 +824,25 @@ export function SurveyPreviewModal({
               <div className="flex items-center gap-2">
                 <ImageIcon className={cn('h-4 w-4', sectionIconClass)} />
                 <h4 className={cn('text-sm font-bold', isDark ? 'text-cyan-300' : 'text-sky-700')}>
-                  5. รูปภาพที่อัปโหลดจากการตรวจเยี่ยม
+                  5. รูปภาพที่อัปโหลดจากการตรวจเยี่ยม (Field Photos)
                 </h4>
-                <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold border', isDark ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-300' : 'bg-sky-100 border-sky-200 text-sky-700')}>
-                  {photos.length} รูป
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-xs font-semibold border',
+                    isUnvisited
+                      ? isDark
+                        ? 'bg-purple-500/10 border-purple-500/20 text-purple-300'
+                        : 'bg-purple-100 border-purple-200 text-purple-700'
+                      : isDark
+                        ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-300'
+                        : 'bg-sky-100 border-sky-200 text-sky-700'
+                  )}
+                >
+                  {isUnvisited ? '0 รูป (รอลงพื้นที่)' : `${photos.length} รูป`}
                 </span>
               </div>
 
-              {photos.length > 1 && (
+              {!isUnvisited && photos.length > 1 && (
                 <button
                   type="button"
                   onClick={handleDownloadAllPhotos}
@@ -674,7 +859,17 @@ export function SurveyPreviewModal({
               )}
             </div>
 
-            {resolvedPhotos.length > 0 ? (
+            {isUnvisited ? (
+              <div className={cn('flex flex-col items-center justify-center py-8 px-4 text-center rounded-xl border border-dashed transition-colors', isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-300')}>
+                <Clock className={cn('h-8 w-8 mb-2', isDark ? 'text-purple-400/60' : 'text-purple-500/60')} />
+                <p className={cn('text-sm font-medium', isDark ? 'text-slate-300' : 'text-slate-700')}>
+                  ยังไม่มีภาพถ่ายภาคสนามสำหรับสถานีนี้
+                </p>
+                <p className={cn('text-xs mt-0.5', labelClass)}>
+                  สามารถบันทึกและอัปโหลดภาพถ่ายสถานที่และอุปกรณ์เมื่อเริ่มลงพื้นที่สำรวจจริง
+                </p>
+              </div>
+            ) : resolvedPhotos.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
                 {resolvedPhotos.map((photo, index) => {
                   const photoSrc = getPhotoSrc(photo);
@@ -768,51 +963,69 @@ export function SurveyPreviewModal({
               </div>
             )}
           </div>
-
         </div>
-
       </div>
 
       {/* Lightbox Modal for Full Resolution Photo */}
-      <Dialog
-        open={Boolean(activePhoto)}
-        onOpenChange={(open) => !open && setActivePhoto(null)}
-      >
-        <DialogContent className={cn('max-w-3xl p-4', isDark ? 'bg-slate-950/98 border-blue-500/40 text-slate-200' : 'bg-white border-slate-200 text-slate-800 shadow-2xl')}>
-          <div className={cn('flex items-center justify-between pb-3 border-b', isDark ? 'border-slate-800' : 'border-slate-200')}>
-            <div className="min-w-0 pr-4">
-              <h4 className={cn('text-sm font-bold truncate', valBoldClass)}>
-                {activePhoto?.name}
-              </h4>
-              {activePhoto?.size ? (
-                <span className={cn('text-xs', labelClass)}>
-                  ขนาดไฟล์: {formatSize(activePhoto.size)}
-                </span>
-              ) : null}
-            </div>
-            {activePhoto && (
-              <button
-                type="button"
-                onClick={() => handleDownloadPhoto(activePhoto)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:from-blue-500 hover:to-cyan-400 transition-all cursor-pointer shrink-0"
-              >
-                <Download className="h-4 w-4" />
-                <span>ดาวน์โหลดรูปภาพ</span>
-              </button>
+      {activePhoto && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setActivePhoto(null);
+          }}
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
+        >
+          <div
+            className={cn(
+              'relative flex flex-col w-full max-w-3xl max-h-[90vh] rounded-2xl border p-4 shadow-2xl overflow-hidden',
+              isDark ? 'bg-slate-950 border-blue-500/40 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
             )}
-          </div>
+          >
+            <div className={cn('flex items-center justify-between pb-3 border-b shrink-0', isDark ? 'border-slate-800' : 'border-slate-200')}>
+              <div className="min-w-0 pr-4">
+                <h4 className={cn('text-sm font-bold truncate', valBoldClass)}>
+                  {activePhoto.name}
+                </h4>
+                {activePhoto.size ? (
+                  <span className={cn('text-xs', labelClass)}>
+                    ขนาดไฟล์: {formatSize(activePhoto.size)}
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleDownloadPhoto(activePhoto)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:from-blue-500 hover:to-cyan-400 transition-all cursor-pointer"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>ดาวน์โหลด</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePhoto(null)}
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-lg border transition-colors cursor-pointer',
+                    isDark ? 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white' : 'border-slate-200 bg-white text-slate-600 hover:text-slate-900'
+                  )}
+                  title="ปิดภาพขนาดใหญ่"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
 
-          <div className="mt-3 flex items-center justify-center rounded-xl bg-black/80 max-h-[75vh] overflow-hidden p-2">
-            {activePhoto && (
+            <div className="mt-3 flex items-center justify-center rounded-xl bg-black/80 max-h-[75vh] overflow-hidden p-2">
               <img
                 src={getPhotoSrc(activePhoto)}
                 alt={activePhoto.name}
                 className="max-h-[70vh] w-auto max-w-full object-contain rounded-lg shadow-2xl"
               />
-            )}
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

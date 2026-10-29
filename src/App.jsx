@@ -24,14 +24,19 @@ export function App() {
 
   const navigateTo = (page, extra = null) => {
     setMobileMenuOpen(false);
-    if (page === 'field') {
+    const isFieldPage = page === 'field' || page === 'field-visit';
+    if (isFieldPage) {
       setEditingSurvey(extra || null);
     } else {
       setEditingSurvey(null);
     }
-    setCurrentPage(page);
-    const targetUrl = getAppUrl(page);
-    if (window.location.pathname !== targetUrl) {
+    const resolvedPage = isFieldPage ? 'field' : page;
+    setCurrentPage(resolvedPage);
+    let targetUrl = getAppUrl(resolvedPage);
+    if (isFieldPage && extra?.siteId) {
+      targetUrl += `?siteId=${encodeURIComponent(extra.siteId)}`;
+    }
+    if (window.location.pathname + window.location.search !== targetUrl) {
       window.history.pushState({}, '', targetUrl);
     }
   };

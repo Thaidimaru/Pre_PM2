@@ -1807,6 +1807,10 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
         isOpen={Boolean(selectedPreview)}
         onClose={() => setSelectedPreview(null)}
         surveyData={selectedPreview || {}}
+        onStartSurvey={(item) => {
+          setSelectedPreview(null);
+          if (onNavigate) onNavigate('field', item);
+        }}
         onOpenOfficialReport={(reportData) => {
           setSelectedPreview(null);
           setReportSurveys([reportData]);
