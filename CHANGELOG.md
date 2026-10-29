@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.6] - 2026-10-29
+
+### Changed
+- ปรับปรุง UI หน้า Dashboard: ลบแถบสถานะเรียลไทม์ตัวนับถอยหลัง (10s), ปุ่มพัก, และข้อความเวลาล่าสุดออก โดยเปลี่ยนมาเป็นปุ่ม "รีเฟรช" เรียบง่าย (Clean Simple Refresh Button)
+- ย้ายระบบ Auto-polling เป็น Silent Background Interval (30s) ป้องกันการ re-render ซ้ำทุกวินาทีจากตัวนับถอยหลัง ช่วยเพิ่มประสิทธิภาพและความลื่นไหลของหน้าจอ Dashboard
+
 ## [2.17.5] - 2026-10-29
 
 ### Added
