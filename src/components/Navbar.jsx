@@ -5,6 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { fetchGitHubStatus, getStoredGitHubToken, fetchServerGitHubToken, getUnsyncedSurveysCount } from '@/lib/api';
 import { SettingsModal } from '@/components/settings/SettingsModal';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { toast } from '@/components/ui/toast';
 import nbtcLogo from '@/assets/images/nbtc-logo-dashboard.png';
 
@@ -331,15 +332,17 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
       </div>
 
       {/* Consolidated Settings Modal (Password Protected) */}
-      <SettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        initialTab={settingsInitialTab}
-        onGitHubUpdated={(st) => {
-          setGithubStatus(st);
-          refreshGitHubStatus();
-        }}
-      />
+      <ErrorBoundary componentName="หน้าต่างตั้งค่าระบบ (Settings Modal)" onReset={() => setIsSettingsModalOpen(false)}>
+        <SettingsModal
+          isOpen={isSettingsModalOpen}
+          onClose={() => setIsSettingsModalOpen(false)}
+          initialTab={settingsInitialTab}
+          onGitHubUpdated={(st) => {
+            setGithubStatus(st);
+            refreshGitHubStatus();
+          }}
+        />
+      </ErrorBoundary>
     </header>
   );
 }

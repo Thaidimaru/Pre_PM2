@@ -25,6 +25,7 @@ import {
   ArrowRight,
   Loader2,
   Building,
+  Lock,
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';

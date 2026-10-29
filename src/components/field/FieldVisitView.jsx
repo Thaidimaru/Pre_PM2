@@ -51,9 +51,18 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
 
   // Subscribe to real-time round lock updates
   useEffect(() => {
-    fetchRoundStatuses().then((st) => setRoundStatuses(st)).catch(() => {});
+    const updateIfChanged = (newStatuses) => {
+      if (!Array.isArray(newStatuses)) return;
+      setRoundStatuses((prev) => {
+        const prevKey = prev.map((r) => `${r.round_number}:${r.status}`).join(',');
+        const nextKey = newStatuses.map((r) => `${r.round_number}:${r.status}`).join(',');
+        return prevKey === nextKey ? prev : newStatuses;
+      });
+    };
+
+    fetchRoundStatuses().then(updateIfChanged).catch(() => {});
     const onRoundsUpdated = (e) => {
-      if (e.detail?.rounds) setRoundStatuses(e.detail.rounds);
+      if (e.detail?.rounds) updateIfChanged(e.detail.rounds);
     };
     window.addEventListener('nbtc-rounds-updated', onRoundsUpdated);
     return () => window.removeEventListener('nbtc-rounds-updated', onRoundsUpdated);
@@ -88,8 +97,10 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
   useEffect(() => {
     if (!editingSurvey && openRounds.length > 0) {
       setFormData((prev) => {
-        if (!prev.round_number || !openRounds.includes(Number(prev.round_number))) {
-          return { ...prev, round_number: openRounds[0] };
+        const currentRn = Number(prev.round_number);
+        if (!currentRn || !openRounds.includes(currentRn)) {
+          const target = openRounds[0];
+          return prev.round_number === target ? prev : { ...prev, round_number: target };
         }
         return prev;
       });

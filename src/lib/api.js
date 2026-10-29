@@ -855,7 +855,10 @@ export function getCachedRoundStatuses() {
 export function setCachedRoundStatuses(rounds) {
   if (typeof window === 'undefined' || !Array.isArray(rounds)) return;
   try {
-    localStorage.setItem(ROUNDS_STATUS_CACHE_KEY, JSON.stringify(rounds));
+    const next = JSON.stringify(rounds);
+    const prev = localStorage.getItem(ROUNDS_STATUS_CACHE_KEY);
+    if (prev === next) return; // Guard: skip dispatch if cache is unchanged
+    localStorage.setItem(ROUNDS_STATUS_CACHE_KEY, next);
     window.dispatchEvent(new CustomEvent('nbtc-rounds-updated', { detail: { rounds } }));
   } catch (e) {}
 }

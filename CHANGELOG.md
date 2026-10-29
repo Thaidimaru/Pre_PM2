@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.1] - 2026-10-29
+
+### Fixed
+- **แก้ไขข้อผิดพลาด TypeError: Illegal constructor และตัดตอนการวนลูปไม่รู้จบใน React Reconciliation Lifecycle**:
+  - **แก้ไขการนำเข้าไอคอน Lock จาก `lucide-react` ใน `RecentSurveys.jsx` และ `SurveyPreviewModal.jsx`**:
+    - ตรวจพบสาเหตุหลักเกิดจากการเรียกใช้แท็ก JSX `<Lock ... />` เพื่อแสดงไอคอนสถานะล็อก Read-Only ใน `RecentSurveys.jsx` (บรรทัด 1510 และ 1685) และ `SurveyPreviewModal.jsx` (บรรทัด 490 และ 573) โดยไม่ได้นำเข้า `Lock` จากไลบรารี `lucide-react`
+    - ส่งผลให้ JavaScript ทำการ Resolve ตัวแปรตาม Scope Chain ไปชนกับ `window.Lock` ซึ่งเป็น Interface ดั้งเดิมของเบราว์เซอร์ (Native Web Locks API) ที่ห้ามเรียกด้วย Constructor แบบธรรมดา เมื่อ React พยายาม Reconcile / Instantiate ตัวคอมโพเนนต์จึงเกิดข้อผิดพลาดรุนแรงระดับเบราว์เซอร์ `TypeError: Illegal constructor`
+    - แก้ไขโดยเพิ่มการนำเข้า `Lock` จาก `lucide-react` ให้ครบถ้วนทั้งสองไฟล์ ทำให้ React สามารถ Render ไอคอนได้อย่างถูกต้อง
+  - **สร้าง Error Boundary (`src/components/ui/ErrorBoundary.jsx`) ป้องกันการวนลูปของ MessagePort / React Scheduler**:
+    - เพิ่มคอมโพเนนต์ `ErrorBoundary` พร้อม UI สำรอง (Graceful Fallback Card) ที่สวยงาม สอดคล้องกับ Glassmorphism & Modern Design รองรับทั้ง Dark / Light Mode และมีปุ่ม "ลองใหม่อีกครั้ง" และ "โหลดหน้าเว็บใหม่"
+    - ครอบจุดวิกฤตทั่วทั้งแอปพลิเคชัน: หน้าเพจหลัก (`App.jsx`), ตารางประวัติการตรวจเยี่ยม (`RecentSurveys.jsx`), รายการสถานีค้างตรวจ (`PendingStationsChecklist.jsx`), หน้าต่างรายละเอียดแบบสำรวจ (`SurveyPreviewModal.jsx`), หน้าต่างพิมพ์รายงาน A4 (`SurveyReportModal.jsx`), หน้าต่างเจาะลึกสถิติ (`SurveyDrillDownModal.jsx`), และหน้าต่างตั้งค่าระบบ (`SettingsModal.jsx`)
+    - ช่วยกักกันข้อผิดพลาดระดับคอมโพเนนต์ ไม่ให้ลุกลามจนทำให้ React Concurrent Scheduler บน `MessagePort` วนลูปไม่รู้จบหรือทำให้เบราว์เซอร์ค้าง
+  - **เสริม Guard ป้องกันการวนซ้ำของ State ใน `FieldVisitView.jsx` และ `api.js`**:
+    - เสริมการตรวจสอบ `setCachedRoundStatuses` ใน `src/lib/api.js` ให้เปรียบเทียบข้อมูลก่อนบันทึก `localStorage` และส่ง CustomEvent `nbtc-rounds-updated` เฉพาะเมื่อสถานะมีการเปลี่ยนแปลงจริง
+    - ปรับปรุงการตรวจสอบ State `roundStatuses` และ `round_number` ใน `FieldVisitView.jsx` เพื่อป้องกัน Trigger การ Re-render โดยไม่จำเป็น
+
 ## [2.17.0] - 2026-10-29
 
 ### Added

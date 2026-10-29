@@ -97,10 +97,10 @@ const versionJs = fs.readFileSync('src/version.js', 'utf8');
 const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
 
-assert(versionJs.includes("APP_VERSION = '2.17.0'"), 'src/version.js must be 2.17.0');
-assert(packageJson.version === '2.17.0', 'package.json version must be 2.17.0');
+assert(versionJs.includes("APP_VERSION = '2.17.1'"), 'src/version.js must be 2.17.1');
+assert(packageJson.version === '2.17.1', 'package.json version must be 2.17.1');
 assert(changelog.includes('## [2.17.0] - 2026-10-29'), 'CHANGELOG.md must document [2.17.0]');
-console.log('  ✓ Version 2.17.0 synchronized in src/version.js, package.json, and CHANGELOG.md');
+console.log('  ✓ Version 2.17.1 synchronized in src/version.js, package.json, and CHANGELOG.md');
 
 console.log('\n======================================================');
 console.log('🎉 ALL ROUND LOCKING & PROTECTION VERIFICATION TESTS PASSED!');

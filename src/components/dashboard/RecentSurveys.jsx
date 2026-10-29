@@ -29,10 +29,12 @@ import {
   RotateCcw,
   SlidersHorizontal,
   Radio,
+  Lock,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { SurveyReportModal } from '@/components/export/SurveyReportModal';
 import { SurveyPreviewModal } from '@/components/dashboard/SurveyPreviewModal';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { exportSurveysToExcel } from '@/lib/excelExport';
 import { deleteSurveys, getDeletedSurveyIds, githubErrorText, isLocalApiRateLimited, isRoundClosed } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
@@ -1873,35 +1875,39 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
       </GlassCard>
 
       {/* Survey Preview Modal (Detail & Photos with Download) */}
-      <SurveyPreviewModal
-        isOpen={Boolean(selectedPreview)}
-        onClose={() => setSelectedPreview(null)}
-        surveyData={selectedPreview || {}}
-        onStartSurvey={(item) => {
-          setSelectedPreview(null);
-          if (onNavigate) onNavigate('field', item);
-        }}
-        onOpenOfficialReport={(reportData) => {
-          setSelectedPreview(null);
-          setReportSurveys([reportData]);
-        }}
-        onEdit={(item) => {
-          setSelectedPreview(null);
-          if (onEditSurvey) onEditSurvey(item);
-          else if (onNavigate) onNavigate('field', item);
-        }}
-        onDelete={(item) => {
-          setSelectedPreview(null);
-          setDeleteTarget(item);
-        }}
-      />
+      <ErrorBoundary componentName="หน้าต่างแสดงรายละเอียดแบบสำรวจ (Survey Preview Modal)" onReset={() => setSelectedPreview(null)}>
+        <SurveyPreviewModal
+          isOpen={Boolean(selectedPreview)}
+          onClose={() => setSelectedPreview(null)}
+          surveyData={selectedPreview || {}}
+          onStartSurvey={(item) => {
+            setSelectedPreview(null);
+            if (onNavigate) onNavigate('field', item);
+          }}
+          onOpenOfficialReport={(reportData) => {
+            setSelectedPreview(null);
+            setReportSurveys([reportData]);
+          }}
+          onEdit={(item) => {
+            setSelectedPreview(null);
+            if (onEditSurvey) onEditSurvey(item);
+            else if (onNavigate) onNavigate('field', item);
+          }}
+          onDelete={(item) => {
+            setSelectedPreview(null);
+            setDeleteTarget(item);
+          }}
+        />
+      </ErrorBoundary>
 
       {/* Unified Official A4 Printable Report Modal */}
-      <SurveyReportModal
-        isOpen={Boolean(reportSurveys && reportSurveys.length > 0)}
-        onClose={() => setReportSurveys(null)}
-        surveys={reportSurveys || []}
-      />
+      <ErrorBoundary componentName="หน้าต่างรายงานแบบฟอร์ม A4 (Survey Report Modal)" onReset={() => setReportSurveys(null)}>
+        <SurveyReportModal
+          isOpen={Boolean(reportSurveys && reportSurveys.length > 0)}
+          onClose={() => setReportSurveys(null)}
+          surveys={reportSurveys || []}
+        />
+      </ErrorBoundary>
 
       {/* Delete Confirmation Dialog */}
       {deleteTarget && (

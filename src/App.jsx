@@ -9,6 +9,7 @@ import { LoginView } from '@/components/auth/LoginView';
 import { useTheme } from '@/context/ThemeContext';
 import { isStaticHost, saveLocalApiToken } from '@/lib/api';
 import { cn, getAppRoute, getAppUrl } from '@/lib/utils';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export function App() {
   const { isDark } = useTheme();
@@ -106,6 +107,7 @@ export function App() {
         {/* Dynamic Page Content */}
         <div className="flex-1 min-w-0 pl-0 lg:pl-64 transition-all duration-300">
           <div className="min-h-[calc(100vh-88px)] py-4 sm:py-6">
+            <ErrorBoundary componentName="หน้าแสดงผลหลัก (Main Page)" resetKeys={[currentPage]}>
             {currentPage === 'login' && !isStaticHost() ? (
               <LoginView
                 onLoginSuccess={(token) => {
@@ -130,6 +132,7 @@ export function App() {
                 onCancelEdit={() => navigateTo('dashboard')}
               />
             )}
+            </ErrorBoundary>
           </div>
         </div>
       </div>

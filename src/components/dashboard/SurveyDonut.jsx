@@ -4,6 +4,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { SurveyDrillDownModal } from './SurveyDrillDownModal';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export function SurveyDonut({ stats = {}, surveys = [], onNavigate, onEditSurvey }) {
   const { isDark } = useTheme();
@@ -272,15 +273,17 @@ export function SurveyDonut({ stats = {}, surveys = [], onNavigate, onEditSurvey
 
       {/* Drill-down Detail Modal */}
       {drillDownCategory && (
-        <SurveyDrillDownModal
-          isOpen={Boolean(drillDownCategory)}
-          onClose={() => setDrillDownCategory(null)}
-          initialCategory={drillDownCategory}
-          stats={stats}
-          surveys={surveys}
-          onNavigate={onNavigate}
-          onEditSurvey={onEditSurvey}
-        />
+        <ErrorBoundary componentName="หน้าต่างเจาะลึกสถิติ (Survey Drill-Down Modal)" onReset={() => setDrillDownCategory(null)}>
+          <SurveyDrillDownModal
+            isOpen={Boolean(drillDownCategory)}
+            onClose={() => setDrillDownCategory(null)}
+            initialCategory={drillDownCategory}
+            stats={stats}
+            surveys={surveys}
+            onNavigate={onNavigate}
+            onEditSurvey={onEditSurvey}
+          />
+        </ErrorBoundary>
       )}
     </>
   );

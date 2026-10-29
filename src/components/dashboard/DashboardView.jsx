@@ -13,6 +13,7 @@ import { PendingStationsChecklist } from './PendingStationsChecklist';
 import { fetchDashboardData, getCachedDashboardData, fetchStations } from '@/lib/api';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 const initialStats = { surveys: 0, stations: 197, allowed: 0, denied: 0 };
 
@@ -502,25 +503,29 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
           {/* Explicit Missing / Pending Stations Checklist for Incomplete Rounds */}
           {selectedRound !== 'all' && (
             <div className="w-full">
-              <PendingStationsChecklist
-                selectedRound={selectedRound}
-                masterStations={masterStations}
-                completedSurveys={activeSurveys}
-                onNavigate={onNavigate}
-              />
+              <ErrorBoundary componentName="รายการสถานีที่ยังไม่ลงตรวจ (Pending Stations)">
+                <PendingStationsChecklist
+                  selectedRound={selectedRound}
+                  masterStations={masterStations}
+                  completedSurveys={activeSurveys}
+                  onNavigate={onNavigate}
+                />
+              </ErrorBoundary>
             </div>
           )}
 
           {/* Survey Records & History Table (Full Width) */}
           <div className="w-full">
-            <RecentSurveys
-              recent={activeSurveys}
-              onNavigate={onNavigate}
-              onEditSurvey={onEditSurvey}
-              onRefresh={() => loadData(true)}
-              selectedRound={selectedRound}
-              onSelectRound={setSelectedRound}
-            />
+            <ErrorBoundary componentName="ตารางประวัติการตรวจเยี่ยม (Recent Surveys)">
+              <RecentSurveys
+                recent={activeSurveys}
+                onNavigate={onNavigate}
+                onEditSurvey={onEditSurvey}
+                onRefresh={() => loadData(true)}
+                selectedRound={selectedRound}
+                onSelectRound={setSelectedRound}
+              />
+            </ErrorBoundary>
           </div>
         </>
       )}
