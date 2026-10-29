@@ -1,10 +1,12 @@
 {
   "recordId": "PM-202610051620381-aa77",
+  "siteId": "SITE-040",
   "savedAt": "2026-10-05T16:20:38.123Z",
   "station": "หมู่ 10 ปางใหม่พัฒนา",
   "province": "กำแพงเพชร",
   "permit": "อนุญาต",
   "fields": {
+    "siteId": "SITE-040",
     "permit": "อนุญาต",
     "radioStatus": "ปกติ",
     "receiveStatus": "ปกติ",

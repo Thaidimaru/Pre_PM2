@@ -96,16 +96,35 @@ assert(multiRound.includes('ปิดรอบแล้ว (Read-Only)'), 'Multi
 assert(multiRound.includes('nbtc-rounds-updated'), 'MultiRoundOverview must subscribe to nbtc-rounds-updated');
 console.log('  ✓ MultiRoundOverview.jsx lock badges and visual indicators verified');
 
-// 9. Version and Changelog
-console.log('\n9. Checking Version Consistency & CHANGELOG.md...');
+// 9. Master Station Mapping Reconciliation (SITE-191 & SITE-040)
+console.log('\n9. Checking Master Station Reconciliation for SITE-191 & SITE-040...');
+const survey191 = JSON.parse(fs.readFileSync('data/surveys/PM-202610070240292-0440.json', 'utf8'));
+assert(survey191.siteId === 'SITE-191', 'PM-202610070240292-0440 must have siteId: SITE-191');
+assert(survey191.station === 'BS ปางใหม่พัฒนา', 'PM-202610070240292-0440 must have station: BS ปางใหม่พัฒนา');
+
+const survey040 = JSON.parse(fs.readFileSync('data/surveys/PM-202610051620381-aa77.json', 'utf8'));
+assert(survey040.siteId === 'SITE-040', 'PM-202610051620381-aa77 must have siteId: SITE-040');
+assert(survey040.station === 'หมู่ 10 ปางใหม่พัฒนา', 'PM-202610051620381-aa77 must have station: หมู่ 10 ปางใหม่พัฒนา');
+
+const pendingChecklist = fs.readFileSync('src/components/dashboard/PendingStationsChecklist.jsx', 'utf8');
+assert(pendingChecklist.includes('STATION_ALIASES'), 'PendingStationsChecklist must use STATION_ALIASES');
+assert(pendingChecklist.includes('siteId'), 'PendingStationsChecklist must match siteId');
+
+const apiJsAliases = fs.readFileSync('src/lib/api.js', 'utf8');
+assert(apiJsAliases.includes("'BS บ้านปางใหม่พัฒนา': 'BS ปางใหม่พัฒนา'"), 'api.js must map BS บ้านปางใหม่พัฒนา alias');
+
+console.log('  ✓ SITE-191 and SITE-040 reconciled and verified in master mapping');
+
+// 10. Version and Changelog
+console.log('\n10. Checking Version Consistency & CHANGELOG.md...');
 const versionJs = fs.readFileSync('src/version.js', 'utf8');
 const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
 
-assert(versionJs.includes("APP_VERSION = '2.17.2'"), 'src/version.js must be 2.17.2');
-assert(packageJson.version === '2.17.2', 'package.json version must be 2.17.2');
-assert(changelog.includes('## [2.17.2] - 2026-10-29'), 'CHANGELOG.md must document [2.17.2]');
-console.log('  ✓ Version 2.17.2 synchronized in src/version.js, package.json, and CHANGELOG.md');
+assert(versionJs.includes("APP_VERSION = '2.17.3'"), 'src/version.js must be 2.17.3');
+assert(packageJson.version === '2.17.3', 'package.json version must be 2.17.3');
+assert(changelog.includes('## [2.17.3] - 2026-10-29'), 'CHANGELOG.md must document [2.17.3]');
+console.log('  ✓ Version 2.17.3 synchronized in src/version.js, package.json, and CHANGELOG.md');
 
 console.log('\n======================================================');
 console.log('🎉 ALL ROUND LOCKING & PROTECTION VERIFICATION TESTS PASSED!');

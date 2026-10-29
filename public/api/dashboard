@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-29T08:53:08.856Z",
+  "updatedAt": "2026-10-29T09:15:19.518Z",
   "stats": {
     "surveys": 197,
     "stations": 197,
@@ -6092,18 +6092,19 @@
     {
       "recordId": "PM-202610070240292-0440",
       "savedAt": "2026-10-07T02:40:29.221Z",
-      "station": "BS บ้านปางใหม่พัฒนา",
+      "station": "BS ปางใหม่พัฒนา",
       "province": "กำแพงเพชร",
       "permit": "อนุญาต",
       "round_number": 1,
       "fields": {
-        "station": "BS บ้านปางใหม่พัฒนา",
+        "station": "BS ปางใหม่พัฒนา",
         "subdistrict": "ปางตาไว",
         "district": "ปางศิลาทอง",
         "province": "กำแพงเพชร",
         "installationPlace": "ศาลาประชาคม บ้านปางใหม่พัฒนา ต.ปางตาไว อ.ปางศิลาทอง จ.กำแพงเพชร",
         "equipmentPlace": "ตู้ Outdoor ใต้เสาสื่อสารศาลาประชาคมบ้านปางใหม่พัฒนา",
         "round_number": 1,
+        "siteId": "SITE-191",
         "permit": "อนุญาต",
         "radioStatus": "ปกติ",
         "receiveStatus": "ปกติ",
@@ -6813,6 +6814,7 @@
         "installationPlace": "ที่ทำการบ้านผู้ใหญ่บ้าน",
         "equipmentPlace": "ที่ทำการบ้านผู้ใหญ่บ้าน",
         "round_number": 1,
+        "siteId": "SITE-040",
         "permit": "อนุญาต",
         "radioStatus": "ปกติ",
         "receiveStatus": "ปกติ",

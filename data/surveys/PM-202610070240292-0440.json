@@ -1,10 +1,12 @@
 {
   "recordId": "PM-202610070240292-0440",
+  "siteId": "SITE-191",
   "savedAt": "2026-10-07T02:40:29.221Z",
-  "station": "BS บ้านปางใหม่พัฒนา",
+  "station": "BS ปางใหม่พัฒนา",
   "province": "กำแพงเพชร",
   "permit": "อนุญาต",
   "fields": {
+    "siteId": "SITE-191",
     "permit": "อนุญาต",
     "radioStatus": "ปกติ",
     "receiveStatus": "ปกติ",
@@ -12,7 +14,7 @@
     "powerStatus": "ปกติ",
     "batteryStatus": "ปกติ",
     "groundStatus": "ปกติ",
-    "station": "BS บ้านปางใหม่พัฒนา",
+    "station": "BS ปางใหม่พัฒนา",
     "province": "กำแพงเพชร",
     "district": "ปางศิลาทอง",
     "subdistrict": "ปางตาไว",

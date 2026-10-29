@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, Search, Filter, ArrowRight, Radio, MapPin, P
 import { GlassCard } from '@/components/ui/glass-card';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import { STATION_ALIASES } from '@/lib/api';
 
 function normalizeStationKey(name) {
   const THAI_DIGITS = '๐๑๒๓๔๕๖๗๘๙';
@@ -33,6 +34,16 @@ export function PendingStationsChecklist({
       if (v) {
         set.add(v);
         set.add(normalizeStationKey(v));
+        const alias = STATION_ALIASES[v];
+        if (alias) {
+          set.add(alias);
+          set.add(normalizeStationKey(alias));
+        }
+      }
+      const sid = sv.siteId?.trim() || sv.fields?.siteId?.trim() || '';
+      if (sid) {
+        set.add(sid.toUpperCase());
+        set.add(sid.toLowerCase());
       }
     }
     return set;
@@ -43,7 +54,17 @@ export function PendingStationsChecklist({
     return masterStations.filter((st) => {
       const v = st.village?.trim() || '';
       const norm = normalizeStationKey(v);
-      return !completedStationSet.has(v) && !completedStationSet.has(norm);
+      const siteId = `SITE-${String(st.id).padStart(3, '0')}`;
+      const alias = STATION_ALIASES[v] || '';
+
+      const isCompleted =
+        completedStationSet.has(v) ||
+        completedStationSet.has(norm) ||
+        completedStationSet.has(siteId) ||
+        completedStationSet.has(siteId.toLowerCase()) ||
+        (alias && (completedStationSet.has(alias) || completedStationSet.has(normalizeStationKey(alias))));
+
+      return !isCompleted;
     });
   }, [masterStations, completedStationSet]);
 
