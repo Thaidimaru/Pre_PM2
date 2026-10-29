@@ -1308,7 +1308,7 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
                     aria-label="เลือกทั้งหมดในหน้านี้"
                   />
                 </th>
-                <th className="py-3 px-2 text-center w-12 whitespace-nowrap">#</th>
+                <th className="py-3 px-2 text-center w-14 whitespace-nowrap">ลำดับ</th>
                 <th className="py-3 px-3 w-[185px] min-w-[175px] whitespace-nowrap">รหัสรายการ</th>
                 <th
                   onClick={() => handleHeaderSort('station')}

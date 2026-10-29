@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.15.11] - 2026-10-29
+
+### Changed
+- **เปลี่ยนหัวตารางประวัติการกรอกข้อมูลคอลัมน์แรกจาก `#` เป็นคำว่า "ลำดับ" (`src/components/dashboard/RecentSurveys.jsx`)**:
+  - เปลี่ยนแท็กส่วนหัวตารางจาก `<th className="py-3 px-2 text-center w-12 whitespace-nowrap">#</th>` เป็น `<th className="py-3 px-2 text-center w-14 whitespace-nowrap">ลำดับ</th>` ในตาราง "ประวัติการกรอกข้อมูลการตรวจเยี่ยมทั้งหมด"
+  - ปรับความกว้างคอลัมน์ให้รับคำภาษาไทยได้อย่างเหมาะสม (`w-14`) พร้อมคงการจัดวางกึ่งกลาง (`text-center`) และแสดงลำดับตัวเลข 1, 2, 3, ... สอดคล้องกับคอลัมน์อื่นอย่างสมบูรณ์
+
 ## [2.15.10] - 2026-10-29
 
 ### Fixed
