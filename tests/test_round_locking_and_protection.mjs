@@ -115,16 +115,30 @@ assert(apiJsAliases.includes("'BS บ้านปางใหม่พัฒน�
 
 console.log('  ✓ SITE-191 and SITE-040 reconciled and verified in master mapping');
 
-// 10. Version and Changelog
-console.log('\n10. Checking Version Consistency & CHANGELOG.md...');
+// 10. Auto-Advance Active Round Context & Metric Reset
+console.log('\n10. Checking Auto-Advance to Earliest Open Round & Metric Reset...');
+assert(apiJs.includes('function getEarliestOpenRound'), 'api.js must export getEarliestOpenRound');
+
+const dashboardView = fs.readFileSync('src/components/dashboard/DashboardView.jsx', 'utf8');
+assert(dashboardView.includes('getEarliestOpenRound'), 'DashboardView must import and use getEarliestOpenRound');
+assert(dashboardView.includes('handleRoundsUpdated'), 'DashboardView must define handleRoundsUpdated');
+assert(dashboardView.includes('setSelectedRound'), 'DashboardView must update selectedRound upon locking');
+
+const pendingList = fs.readFileSync('src/components/dashboard/PendingStationsChecklist.jsx', 'utf8');
+assert(pendingList.includes('รอดำเนินการ'), 'PendingStationsChecklist must display pending badge for active round');
+
+console.log('  ✓ Auto-advance to earliest open round and metric reset verified');
+
+// 11. Version and Changelog
+console.log('\n11. Checking Version Consistency & CHANGELOG.md...');
 const versionJs = fs.readFileSync('src/version.js', 'utf8');
 const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
 
-assert(versionJs.includes("APP_VERSION = '2.17.4'"), 'src/version.js must be 2.17.4');
-assert(packageJson.version === '2.17.4', 'package.json version must be 2.17.4');
-assert(changelog.includes('## [2.17.4] - 2026-10-29'), 'CHANGELOG.md must document [2.17.4]');
-console.log('  ✓ Version 2.17.4 synchronized in src/version.js, package.json, and CHANGELOG.md');
+assert(versionJs.includes("APP_VERSION = '2.17.5'"), 'src/version.js must be 2.17.5');
+assert(packageJson.version === '2.17.5', 'package.json version must be 2.17.5');
+assert(changelog.includes('## [2.17.5] - 2026-10-29'), 'CHANGELOG.md must document [2.17.5]');
+console.log('  ✓ Version 2.17.5 synchronized in src/version.js, package.json, and CHANGELOG.md');
 
 console.log('\n======================================================');
 console.log('🎉 ALL ROUND LOCKING & PROTECTION VERIFICATION TESTS PASSED!');

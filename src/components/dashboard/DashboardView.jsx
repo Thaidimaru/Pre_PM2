@@ -10,7 +10,7 @@ import { SurveyDonut } from './SurveyDonut';
 import { RecentSurveys } from './RecentSurveys';
 import { MultiRoundOverview } from './MultiRoundOverview';
 import { PendingStationsChecklist } from './PendingStationsChecklist';
-import { fetchDashboardData, getCachedDashboardData, fetchStations } from '@/lib/api';
+import { fetchDashboardData, getCachedDashboardData, fetchStations, isRoundClosed, getEarliestOpenRound } from '@/lib/api';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -123,7 +123,22 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
   const prevCountRef = useRef(data.stats?.surveys || null);
 
   // Multi-Round Inspection Management: Default active cycle context to Round 1
-  const [selectedRound, setSelectedRound] = useState(1);
+  // Multi-Round Inspection Management: Default active working round to earliest open/unlocked round
+  const [selectedRound, setSelectedRound] = useState(() => {
+    try {
+      return getEarliestOpenRound();
+    } catch {
+      return 1;
+    }
+  });
+
+  const earliestOpenRound = useMemo(() => {
+    try {
+      return getEarliestOpenRound();
+    } catch {
+      return 1;
+    }
+  }, [data]);
   const [masterStations, setMasterStations] = useState([]);
 
   useEffect(() => {
@@ -244,8 +259,23 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
     const handleSurveysUpdated = () => {
       loadData(true);
     };
+
+    const handleRoundsUpdated = (e) => {
+      loadData(true);
+      // Auto-Advance Active Round Context: When an administrator locks a round,
+      // automatically advance the active round filter to the earliest open round
+      setSelectedRound((prevRound) => {
+        if (prevRound === 'all') return prevRound;
+        const closedRound = e?.detail?.closedRound || (e?.detail?.status === 'closed' ? e?.detail?.roundNumber : null);
+        if ((closedRound && Number(closedRound) === Number(prevRound)) || isRoundClosed(prevRound)) {
+          return getEarliestOpenRound();
+        }
+        return prevRound;
+      });
+    };
+
     window.addEventListener('nbtc-surveys-updated', handleSurveysUpdated);
-    window.addEventListener('nbtc-rounds-updated', handleSurveysUpdated);
+    window.addEventListener('nbtc-rounds-updated', handleRoundsUpdated);
     window.addEventListener('storage', handleSurveysUpdated);
 
     // Refresh immediately when user returns to this tab
@@ -259,7 +289,7 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
     return () => {
       if (bc) bc.close();
       window.removeEventListener('nbtc-surveys-updated', handleSurveysUpdated);
-      window.removeEventListener('nbtc-rounds-updated', handleSurveysUpdated);
+      window.removeEventListener('nbtc-rounds-updated', handleRoundsUpdated);
       window.removeEventListener('storage', handleSurveysUpdated);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
@@ -441,9 +471,11 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
                 <div className={cn('text-xs mt-0.5', isDark ? 'text-slate-400' : 'text-slate-500')}>
                   {selectedRound === 'all'
                     ? 'สรุปผลสำรวจและตัวชี้วัดรวมจากทุกรอบการตรวจเยี่ยม'
+                    : isRoundClosed(selectedRound)
+                    ? `รอบที่ ${selectedRound}: ปิดรอบแล้ว (Read-Only) — ตรวจเยี่ยมครบถ้วนทั้ง 197 สถานี`
                     : activeStats.pending === 0
-                    ? '✓ ดำเนินการตรวจเยี่ยมครบถ้วนทั้ง 197 สถานีแล้วในรอบนี้'
-                    : `มีสถานีค้างดำเนินการอีก ${activeStats.pending} สถานีในรอบนี้ (ดูรายชื่อด้านล่าง)`}
+                    ? `รอบที่ ${selectedRound}: ดำเนินการตรวจเยี่ยมครบถ้วนทั้ง 197 สถานีแล้ว (พร้อมปิดรอบ)`
+                    : `รอบที่ ${selectedRound}: มีสถานีค้างดำเนินการอีก ${activeStats.pending} สถานี (ดูรายชื่อด้านล่าง)`}
                 </div>
               </div>
             </div>
@@ -464,11 +496,20 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
                 )}
               >
                 <option value="all">ทุกรอบการตรวจเยี่ยม (All 18 Rounds)</option>
-                {Array.from({ length: 18 }, (_, i) => i + 1).map((r) => (
-                  <option key={r} value={r}>
-                    รอบที่ {r} (ครั้งที่ {r}) {r === 1 ? '— ครบ 197/197 (100%)' : ''}
-                  </option>
-                ))}
+                {Array.from({ length: 18 }, (_, i) => i + 1).map((r) => {
+                  const isClosed = isRoundClosed(r);
+                  let tag = '';
+                  if (isClosed) {
+                    tag = ' — ปิดรอบแล้ว (Read-Only)';
+                  } else if (r === earliestOpenRound) {
+                    tag = ' — รอบปัจจุบัน (Active)';
+                  }
+                  return (
+                    <option key={r} value={r}>
+                      รอบที่ {r} (ครั้งที่ {r}){tag}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>

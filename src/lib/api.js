@@ -896,6 +896,17 @@ export function isRoundClosed(roundNumber) {
   return match?.status === 'closed';
 }
 
+export function getEarliestOpenRound() {
+  const rounds = getCachedRoundStatuses();
+  for (let r = 1; r <= 18; r++) {
+    const match = rounds.find((item) => Number(item.round_number || item.round) === r);
+    if (!match || match.status !== 'closed') {
+      return r;
+    }
+  }
+  return 1;
+}
+
 export async function fetchRoundStatuses() {
   let rounds = null;
   const workerUrl = getCloudWorkerUrl();
@@ -1022,7 +1033,17 @@ export async function updateRoundLockStatus(roundNumber, status, closedBy = null
   }
 
   // 6. Universal broadcast across tabs and components
-  window.dispatchEvent(new CustomEvent('nbtc-rounds-updated', { detail: { rounds: updatedRounds } }));
+  window.dispatchEvent(
+    new CustomEvent('nbtc-rounds-updated', {
+      detail: {
+        rounds: updatedRounds,
+        roundNumber: rn,
+        round: rn,
+        status: newStatus,
+        closedRound: newStatus === 'closed' ? rn : null,
+      },
+    })
+  );
   notifySurveysUpdated({ action: 'round_lock', roundNumber: rn, round: rn, status: newStatus });
 
   return {

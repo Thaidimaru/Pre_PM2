@@ -1112,11 +1112,14 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
                   title="กรองตารางประวัติตามรอบการตรวจเยี่ยม (รอบ 1 - 18)"
                 >
                   <option value="all">ทุกรอบ</option>
-                  {Array.from({ length: 18 }, (_, i) => i + 1).map((r) => (
-                    <option key={r} value={r}>
-                      รอบที่ {r}
-                    </option>
-                  ))}
+                  {Array.from({ length: 18 }, (_, i) => i + 1).map((r) => {
+                    const isClosed = isRoundClosed(r);
+                    return (
+                      <option key={r} value={r}>
+                        รอบที่ {r} {isClosed ? '(ปิดรอบแล้ว)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -1759,7 +1762,18 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
                         </button>
                       </div>
                     ) : (
-                      'ยังไม่มีผลสำรวจ'
+                      <div className="flex flex-col items-center justify-center py-6 gap-2">
+                        <span className="font-semibold text-sm">
+                          {selectedRound && selectedRound !== 'all'
+                            ? `ยังไม่มีผลสำรวจในรอบที่ ${selectedRound}`
+                            : 'ยังไม่มีผลสำรวจ'}
+                        </span>
+                        <span className="text-xs opacity-75">
+                          {selectedRound && selectedRound !== 'all'
+                            ? `สามารถเริ่มลงพื้นที่สำรวจสถานีในรอบที่ ${selectedRound} ได้จากรายการด้านบนหรือเมนู "ลงพื้นที่"`
+                            : 'ยังไม่มีข้อมูลการตรวจเยี่ยมบันทึกในระบบ'}
+                        </span>
+                      </div>
                     )}
                   </td>
                 </tr>

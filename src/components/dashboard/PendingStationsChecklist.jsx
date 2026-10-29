@@ -156,6 +156,11 @@ export function PendingStationsChecklist({
             <AlertCircle className="h-4 w-4" />
           </div>
           <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30">
+                รอบที่ {selectedRound}: รอดำเนินการ {missingStations.length} สถานี
+              </span>
+            </div>
             <h3 className={cn('text-base sm:text-lg font-bold', isDark ? 'text-white' : 'text-slate-900')}>
               สถานีที่ยังไม่ได้ลงพื้นที่ในรอบที่ {selectedRound} (Missing / Pending Stations)
             </h3>
