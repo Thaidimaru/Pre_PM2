@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, Clock, Menu, X, Sun, Moon, Settings } from 'lucide-react';
+import { Calendar, Clock, Menu, X, Sun, Moon, Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { APP_VERSION } from '@/version';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
@@ -9,7 +9,13 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { toast } from '@/components/ui/toast';
 import nbtcLogo from '@/assets/images/nbtc-logo-dashboard.png';
 
-export function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
+export function Navbar({
+  onToggleMobileMenu,
+  isMobileMenuOpen,
+  onToggleSidebar,
+  isSidebarOpen = true
+}) {
+  const handleToggle = onToggleSidebar || onToggleMobileMenu;
   const { isDark, toggleTheme } = useTheme();
   const [githubStatus, setGithubStatus] = useState({ configured: false, valid: false, repo: 'Thaidimaru/Pre_PM2' });
   const [storedToken, setStoredToken] = useState(() => getStoredGitHubToken());
@@ -117,19 +123,43 @@ export function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
       <div className="mx-auto flex h-full items-center justify-between px-4 sm:px-6 lg:px-10">
         {/* Brand & Mobile Menu Toggle */}
         <div className="flex items-center gap-3 sm:gap-4">
-          {/* Mobile hamburger toggle (visible on screens < lg) */}
+          {/* Hamburger / Sidebar Collapse Toggle Button (Mobile Drawer & Desktop Collapsible) */}
           <button
             type="button"
-            onClick={onToggleMobileMenu}
+            onClick={handleToggle}
             className={cn(
-              'flex h-10 w-10 items-center justify-center rounded-xl border transition-colors lg:hidden focus:outline-none focus:ring-2 focus:ring-blue-500',
+              'flex h-10 w-10 items-center justify-center rounded-xl border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs',
               isDark
                 ? 'border-blue-500/30 bg-blue-950/40 text-slate-200 hover:bg-blue-900/40 hover:text-white'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-xs'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900'
             )}
-            aria-label={isMobileMenuOpen ? 'ปิดเมนู' : 'เปิดเมนู'}
+            aria-label={
+              isMobileMenuOpen || isSidebarOpen
+                ? 'ย่อ / ปิดแถบเมนู (Collapse Sidebar)'
+                : 'ขยาย / เปิดแถบเมนู (Expand Sidebar)'
+            }
+            title={
+              isSidebarOpen
+                ? 'ย่อแถบเมนูด้านข้าง (Control Center Menu)'
+                : 'เปิดแถบเมนูด้านข้าง (Control Center Menu)'
+            }
           >
-            {isMobileMenuOpen ? <X className="h-5 w-5 text-cyan-400" /> : <Menu className="h-5 w-5" />}
+            {/* Mobile / Tablet indicator */}
+            <span className="lg:hidden flex items-center justify-center">
+              {isMobileMenuOpen ? (
+                <X className="h-5 w-5 text-cyan-400" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </span>
+            {/* Desktop indicator */}
+            <span className="hidden lg:flex items-center justify-center">
+              {isSidebarOpen ? (
+                <PanelLeftClose className="h-5 w-5 text-cyan-400" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </span>
           </button>
 
           <img

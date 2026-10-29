@@ -1,6 +1,6 @@
 {
   "name": "survey-control-room",
-  "version": "2.17.6",
+  "version": "2.17.7",
   "private": true,
   "engines": {
     "node": ">=24.0.0"

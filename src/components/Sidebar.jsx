@@ -1,12 +1,30 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, ClipboardList, Radio, Activity, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Radio, Activity, Sun, Moon, PanelLeftClose } from 'lucide-react';
 import { APP_VERSION } from '@/version';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 
-export function Sidebar({ currentPage, onNavigate, mobileOpen, onClose }) {
+export function Sidebar({
+  currentPage,
+  onNavigate,
+  isOpen = true,
+  mobileOpen,
+  onClose,
+  onToggleCollapse
+}) {
   const { isDark, toggleTheme } = useTheme();
+
+  // Close mobile drawer on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && mobileOpen) {
+        onClose?.();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen, onClose]);
   const navItems = [
     {
       id: 'dashboard',
@@ -24,33 +42,56 @@ export function Sidebar({ currentPage, onNavigate, mobileOpen, onClose }) {
 
   return (
     <>
-      {/* Mobile backdrop overlay */}
+      {/* Mobile / Tablet backdrop overlay */}
       {mobileOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 top-[88px] z-20 bg-black/70 backdrop-blur-xs lg:hidden transition-opacity"
+          className="fixed inset-0 top-[88px] z-20 bg-black/40 backdrop-blur-sm lg:hidden transition-opacity duration-300 cursor-pointer"
           aria-hidden="true"
         />
       )}
 
       <aside
+        id="control-center-sidebar"
         className={cn(
-          'fixed left-0 top-[88px] z-30 flex h-[calc(100vh-88px)] w-64 flex-col justify-between border-r p-4 shadow-2xl backdrop-blur-2xl transition-all duration-300 ease-in-out lg:translate-x-0',
+          'fixed left-0 top-[88px] z-30 flex h-[calc(100vh-88px)] w-64 flex-col justify-between border-r p-4 shadow-2xl backdrop-blur-2xl transition-all duration-300 ease-in-out',
           isDark
             ? 'border-[rgba(28,139,255,0.22)] bg-[linear-gradient(180deg,rgba(2,15,35,0.98),rgba(2,11,27,0.99))] text-white'
             : 'border-slate-200/90 bg-white/95 text-slate-800 shadow-lg',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          // Mobile slide-over drawer
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+          // Desktop collapsible behavior
+          isOpen ? 'lg:translate-x-0' : 'lg:-translate-x-full lg:pointer-events-none'
         )}
+        aria-label="แถบเมนูศูนย์ควบคุม (Control Center Menu)"
+        aria-hidden={!isOpen && !mobileOpen}
       >
         <div className="space-y-6">
           <div>
-            <div
-              className={cn(
-                'px-3 pb-2 text-[11px] font-bold tracking-wider uppercase',
-                isDark ? 'text-cyan-400' : 'text-sky-600'
-              )}
-            >
-              Control Center Menu
+            <div className="flex items-center justify-between px-3 pb-2">
+              <span
+                className={cn(
+                  'text-[11px] font-bold tracking-wider uppercase',
+                  isDark ? 'text-cyan-400' : 'text-sky-600'
+                )}
+              >
+                Control Center Menu
+              </span>
+              {/* Desktop Collapse Shortcut */}
+              <button
+                type="button"
+                onClick={onToggleCollapse || onClose}
+                className={cn(
+                  'hidden lg:flex h-6 w-6 items-center justify-center rounded-lg border text-xs transition-colors cursor-pointer',
+                  isDark
+                    ? 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'
+                    : 'border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+                )}
+                title="ย่อแถบเมนูด้านข้าง (Collapse Sidebar)"
+                aria-label="ย่อแถบเมนูด้านข้าง"
+              >
+                <PanelLeftClose className="h-3.5 w-3.5" />
+              </button>
             </div>
             <nav className="space-y-1.5" aria-label="แถบเมนูหลัก">
               {navItems.map((item) => {

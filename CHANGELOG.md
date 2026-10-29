@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.7] - 2026-10-29
+
+### Added
+- เพิ่มปุ่ม Hamburger Menu / Sidebar Collapse Toggle ใน Navbar ติดกับโลโก้ NBTC รองรับทั้ง Desktop (PanelLeftClose/Menu) และ Mobile Drawer (X/Menu)
+- รองรับการย่อ/ขยาย Sidebar ซ้ายอย่างราบรื่น (Smooth Transition duration-300 ease-in-out) โดยเมื่อย่อเก็บ หน้าต่างเนื้อหาหลักจะขยายเต็มพื้นที่จอ 100% ทันที (Auto-expand)
+- เพิ่มการจดจำสถานะการเปิด/ปิด Sidebar บน Desktop ผ่าน localStorage (`nbtc_pre_pm_sidebar_open`)
+- รองรับการปิด Slide-over Drawer บน Mobile/Tablet ด้วยปุ่ม Escape (Esc key), คลิกพื้นที่ด้านนอก Backdrop (`backdrop-blur-sm bg-black/40`), หรือคลิกเปลี่ยนหน้าเมนู
+
 ## [2.17.6] - 2026-10-29
 
 ### Changed

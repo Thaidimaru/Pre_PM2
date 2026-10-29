@@ -21,6 +21,38 @@ export function App() {
 
   const [editingSurvey, setEditingSurvey] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Collapsible Control Center Sidebar State with LocalStorage Persistence
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const stored = localStorage.getItem('nbtc_pre_pm_sidebar_open');
+      return stored !== null ? stored === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  // Toggle handler for both mobile slide-over drawer and desktop collapsible sidebar
+  const toggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setMobileMenuOpen((prev) => !prev);
+    } else {
+      setIsSidebarOpen((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem('nbtc_pre_pm_sidebar_open', String(next));
+        } catch {}
+        return next;
+      });
+    }
+  };
+
+  // Persist sidebar preference whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('nbtc_pre_pm_sidebar_open', String(isSidebarOpen));
+    } catch {}
+  }, [isSidebarOpen]);
   const [isAuthGateActive, setIsAuthGateActive] = useState(false);
 
   const navigateTo = (page, extra = null) => {
@@ -89,10 +121,12 @@ export function App() {
     >
       <Spotlight />
 
-      {/* Top Fixed Navbar */}
+      {/* Top Fixed Navbar with Sidebar Toggle */}
       <Navbar
         onToggleMobileMenu={() => setMobileMenuOpen((prev) => !prev)}
         isMobileMenuOpen={mobileMenuOpen}
+        onToggleSidebar={toggleSidebar}
+        isSidebarOpen={isSidebarOpen}
       />
 
       <div className="flex">
@@ -100,12 +134,17 @@ export function App() {
         <Sidebar
           currentPage={currentPage}
           onNavigate={navigateTo}
+          isOpen={isSidebarOpen}
           mobileOpen={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
+          onToggleCollapse={toggleSidebar}
         />
 
-        {/* Dynamic Page Content */}
-        <div className="flex-1 min-w-0 pl-0 lg:pl-64 transition-all duration-300">
+        {/* Dynamic Page Content: Automatically expands to 100% width when collapsed */}
+        <div className={cn(
+          'flex-1 min-w-0 transition-all duration-300 ease-in-out',
+          isSidebarOpen ? 'pl-0 lg:pl-64' : 'pl-0'
+        )}>
           <div className="min-h-[calc(100vh-88px)] py-4 sm:py-6">
             <ErrorBoundary componentName="หน้าแสดงผลหลัก (Main Page)" resetKeys={[currentPage]}>
             {currentPage === 'login' && !isStaticHost() ? (
