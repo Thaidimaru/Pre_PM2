@@ -1,5 +1,5 @@
 -- NBTC Microwave — D1 Seed Data Migration
--- Generated on: 2026-10-22T07:46:54.275Z
+-- Generated on: 2026-10-29T04:12:02.427Z
 
 -- 1. Insert Stations
 INSERT OR REPLACE INTO stations (id, village, subdistrict, district, province, installation_place, equipment_place, contact_name, contact_position, contact_phone, house_no) VALUES (1, 'หมู่ 13 หนองจิกน้ำดำ', 'ทุ่งกระบ่ำ', 'เลาขวัญ', 'กาญจนบุรี', 'ที่ทำการบ้านผู้ใหญ่บ้าน', 'ที่ทำการบ้านผู้ใหญ่บ้าน', 'นายสหภูมิ โตอาจ', 'ผู้ใหญ่บ้าน', '081-291-9092, 087-165-7663', '25/1');
