@@ -55,9 +55,9 @@ const versionJs = fs.readFileSync('src/version.js', 'utf8');
 const packageJson = fs.readFileSync('package.json', 'utf8');
 const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
 
-assert(versionJs.includes("APP_VERSION = '2.17.7'"), 'src/version.js is at v2.17.7');
-assert(packageJson.includes('"version": "2.17.7"'), 'package.json is at v2.17.7');
-assert(changelog.includes('## [2.17.7] - 2026-10-29'), 'CHANGELOG.md has entry for v2.17.7');
+assert(versionJs.includes("APP_VERSION = '2.18.0'"), 'src/version.js is at v2.18.0');
+assert(packageJson.includes('"version": "2.18.0"'), 'package.json is at v2.18.0');
+assert(changelog.includes('## [2.18.0]'), 'CHANGELOG.md has entry for v2.18.0');
 
 console.log('\n======================================================');
 if (failCount === 0) {

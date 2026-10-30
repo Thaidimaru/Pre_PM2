@@ -5,6 +5,7 @@ compatibility_date = "2024-01-01"
 [vars]
 GITHUB_REPO = "Thaidimaru/Pre_PM2"
 GITHUB_BRANCH = "main"
+ONEDRIVE_WEBHOOK_URL = "https://hook.eu1.make.com/myra16508wq4lqnr3guul8enz9v5iuj3"
 
 [[d1_databases]]
 binding = "DB"

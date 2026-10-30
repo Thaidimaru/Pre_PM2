@@ -47,3 +47,70 @@ export function getAppUrl(page) {
   return `${base}/` || '/';
 }
 
+
+/**
+ * Compresses an image file client-side to a max dimension and JPEG quality.
+ * Returns Base64 string without data:image/...;base64, prefix.
+ */
+export async function compressPhotoFile(file, maxWidth = 1600, quality = 0.8) {
+  return new Promise((resolve) => {
+    if (!file) return resolve('');
+    if (typeof window === 'undefined') return resolve('');
+
+    const reader = new FileReader();
+    reader.onerror = () => resolve('');
+
+    if (!file.type || !file.type.startsWith('image/')) {
+      reader.onload = () => {
+        const res = reader.result || '';
+        resolve(typeof res === 'string' && res.includes('base64,') ? res.split('base64,')[1] : res);
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const img = new Image();
+    const blobUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      try {
+        URL.revokeObjectURL(blobUrl);
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          fallbackReader();
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        const base64 = dataUrl.includes('base64,') ? dataUrl.split('base64,')[1] : dataUrl;
+        resolve(base64);
+      } catch (err) {
+        fallbackReader();
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+      fallbackReader();
+    };
+
+    function fallbackReader() {
+      reader.onload = () => {
+        const res = reader.result || '';
+        resolve(typeof res === 'string' && res.includes('base64,') ? res.split('base64,')[1] : res);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    img.src = blobUrl;
+  });
+}

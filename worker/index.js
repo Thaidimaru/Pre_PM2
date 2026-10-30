@@ -91,6 +91,49 @@ function cleanPhotoMetadata(photos, recordId) {
   });
 }
 
+function dispatchPhotosToOneDriveWebhook(photos, recordId, roundNumber, station, env, ctx) {
+  const webhookUrl = env?.ONEDRIVE_WEBHOOK_URL || 'https://hook.eu1.make.com/myra16508wq4lqnr3guul8enz9v5iuj3';
+  if (!webhookUrl || !Array.isArray(photos) || photos.length === 0) return;
+
+  const validPhotos = photos.filter(p => p && (p.photoBase64 || p.base64Data || p.data));
+  if (validPhotos.length === 0) return;
+
+  const task = async () => {
+    for (let idx = 0; idx < validPhotos.length; idx++) {
+      const p = validPhotos[idx];
+      const cleanName = (p.name || `photo_${idx + 1}.jpg`).replace(/[/\\?%*:|"<>]/g, '_');
+      const fileName = p.fileName || `${recordId}_${cleanName}`;
+      let rawBase64 = p.photoBase64 || p.base64Data || p.data || '';
+      if (typeof rawBase64 === 'string' && rawBase64.includes('base64,')) {
+        rawBase64 = rawBase64.split('base64,')[1];
+      }
+      if (!rawBase64) continue;
+
+      try {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            round: Number(roundNumber) || 1,
+            station: station || 'ไม่ระบุสถานี',
+            recordId: recordId,
+            fileName: fileName,
+            contentType: p.contentType || p.type || 'image/jpeg',
+            photoBase64: rawBase64,
+          }),
+        });
+      } catch (err) {
+        console.warn(`[OneDrive Webhook] Failed to upload photo ${fileName}:`, err?.message);
+      }
+    }
+  };
+
+  if (ctx && typeof ctx.waitUntil === 'function') {
+    ctx.waitUntil(task());
+  } else {
+    task().catch(() => {});
+  }
+}
 function formatSurveyRow(row, photos = []) {
   if (!row) return null;
   let fields = {};
@@ -1010,6 +1053,7 @@ export default {
           }
 
           if (d1Success || githubSuccess) {
+            dispatchPhotosToOneDriveWebhook(photos, recordId, roundNumber, station, env, ctx);
             return jsonResponse(
               {
                 ok: true,
@@ -1217,6 +1261,7 @@ export default {
           }
 
           if (d1Success || githubSuccess) {
+            dispatchPhotosToOneDriveWebhook(photos, recordId, roundNumber, station, env, ctx);
             return jsonResponse({
               ok: true,
               saved: true,

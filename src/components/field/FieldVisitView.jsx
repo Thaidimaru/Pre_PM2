@@ -40,7 +40,7 @@ import { toast } from '@/components/ui/toast';
 import { SurveyReportModal } from '@/components/export/SurveyReportModal';
 import { Printer, FileText, LayoutDashboard, Lock, AlertTriangle } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
-import { cn } from '@/lib/utils';
+import { cn, compressPhotoFile } from '@/lib/utils';
 
 export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
   const { isDark } = useTheme();
@@ -361,17 +361,35 @@ export function FieldVisitView({ onNavigate, editingSurvey, onCancelEdit }) {
     });
 
     try {
-      const photosPayload = selectedPhotos.map((p, idx) => ({
-        id: p.id || idx + 1,
-        name: p.name || `photo_${idx + 1}.jpg`,
-        fileName: p.fileName || `${p.name || `photo_${idx + 1}.jpg`}`,
-        type: p.type || 'image/jpeg',
-        contentType: p.type || 'image/jpeg',
-        size: p.size || 0,
-        url: p.previewUrl && !p.previewUrl.startsWith('blob:') && !p.previewUrl.startsWith('data:')
-          ? p.previewUrl
-          : `/photos/${p.fileName || p.name || `photo_${idx + 1}.jpg`}`,
-      }));
+      setStatusMessage({
+        text: 'กำลังประมวลผลรูปภาพและส่งข้อมูล...',
+        type: 'info'
+      });
+
+      const photosPayload = await Promise.all(
+        selectedPhotos.map(async (p, idx) => {
+          let base64 = p.photoBase64 || p.base64Data || p.data || '';
+          if (!base64 && p.file) {
+            base64 = await compressPhotoFile(p.file);
+          }
+          const cleanName = (p.name || `photo_${idx + 1}.jpg`).replace(/[/\\?%*:|"<>]/g, '_');
+          const fileName = p.fileName || `${cleanName}`;
+          return {
+            id: p.id || idx + 1,
+            name: cleanName,
+            fileName: fileName,
+            type: p.type || 'image/jpeg',
+            contentType: p.type || 'image/jpeg',
+            size: p.size || 0,
+            url: p.previewUrl && !p.previewUrl.startsWith('blob:') && !p.previewUrl.startsWith('data:')
+              ? p.previewUrl
+              : `/photos/${fileName}`,
+            photoBase64: base64 || undefined,
+            base64Data: base64 || undefined,
+            data: base64 || undefined,
+          };
+        })
+      );
 
       let result;
       if (isEditMode) {

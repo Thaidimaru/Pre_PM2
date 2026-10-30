@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.18.0] - 2026-10-30
+
+### Added
+- เพิ่มระบบเชื่อมต่อรูปภาพเข้าสู่ Microsoft OneDrive อัตโนมัติ (OneDrive Cloud Photo Hub) ผ่าน Make.com Webhook
+- จัดโครงสร้างโฟลเดอร์บน OneDrive อัตโนมัติ: `สำรวจ MW / รอบที่ {round} / {station_name} / {filename}.jpg`
+- เพิ่มระบบบีบอัดภาพหน้างานอัตโนมัติฝั่ง Client (`compressPhotoFile` ใน `src/lib/utils.js`) ช่วยลดขนาดไฟล์ภาพจากกล้องมือถือ (5-10MB) เหลือเพียง 150-250KB คงความคมชัดสูงสำหรับงานเอกสาร A4 และส่งผ่านเน็ตมือถือได้รวดเร็ว
+- เพิ่มฟังก์ชัน Background Webhook Dispatcher ใน Cloudflare Worker (`worker/index.js`) ทำงานแบบ asynchronous ผ่าน `ctx.waitUntil` ไม่หน่วงเวลาตอบสนองของหน้าจอ
+- เพิ่มสคริปต์ซิงค์รูปภาพย้อนหลังเข้า OneDrive: `scripts/sync_photos_to_onedrive.mjs`
+
 ## [2.17.7] - 2026-10-29
 
 ### Added
