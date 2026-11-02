@@ -161,7 +161,8 @@ h1, h2, h3, h4, h5, h6 {
 /* Dedicated Sarabun font stack for official A4 reports */
 .font-sarabun,
 .a4-sheet,
-#printable-report-area {
+#printable-report-area,
+#printable-kpi-report-area {
   font-family: "Sarabun", "Noto Sans Thai", "Inter", system-ui, sans-serif !important;
 }
 
@@ -475,15 +476,19 @@ input::placeholder, textarea::placeholder {
    * from the document flow with display: none so they occupy ZERO height and zero pages.
    */
   body.survey-modal-open #root,
+  body.kpi-report-modal-open #root,
   body:has(#survey-report-modal-portal) #root,
+  body:has(#kpi-report-modal-portal) #root,
   body:has(#printable-report-area) #root,
+  body:has(#printable-kpi-report-area) #root,
   .no-print,
   .print\:hidden {
     display: none !important;
   }
 
   /* Unconstrain and reset modal portal wrapper for native pagination */
-  #survey-report-modal-portal {
+  #survey-report-modal-portal,
+  #kpi-report-modal-portal {
     position: static !important;
     display: block !important;
     width: 100% !important;
@@ -498,7 +503,8 @@ input::placeholder, textarea::placeholder {
     overflow: visible !important;
   }
 
-  #survey-report-modal-portal > div {
+  #survey-report-modal-portal > div,
+  #kpi-report-modal-portal > div {
     position: static !important;
     display: block !important;
     width: 100% !important;
@@ -515,7 +521,8 @@ input::placeholder, textarea::placeholder {
   }
 
   /* Printable Report Area starts cleanly at the top of Page 1 */
-  #printable-report-area {
+  #printable-report-area,
+  #printable-kpi-report-area {
     position: static !important;
     display: block !important;
     width: 100% !important;

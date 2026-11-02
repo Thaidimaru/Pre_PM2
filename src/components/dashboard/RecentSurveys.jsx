@@ -54,7 +54,7 @@ export const SORT_OPTIONS = [
   { value: 'permit_desc', label: 'ผลขออนุญาต: ไม่อนุญาตก่อน', shortLabel: 'ไม่อนุญาตก่อน', icon: XCircle },
 ];
 
-export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh, selectedRound, onSelectRound }) {
+export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh, selectedRound, onSelectRound, onOpenKpiReport }) {
   const { isDark } = useTheme();
   const [reportSurveys, setReportSurveys] = useState(null);
   const [selectedPreview, setSelectedPreview] = useState(null);
@@ -605,6 +605,24 @@ export function RecentSurveys({ recent = [], onNavigate, onEditSurvey, onRefresh
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Executive KPI Summary Report Button */}
+            {onOpenKpiReport && (
+              <button
+                type="button"
+                onClick={onOpenKpiReport}
+                className={cn(
+                  'group inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer shadow-2xs',
+                  isDark
+                    ? 'border-purple-500/30 bg-purple-950/40 text-purple-300 hover:bg-purple-600/30 hover:border-purple-400 hover:text-white'
+                    : 'border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:border-purple-400'
+                )}
+                title="เปิดสรุปรายงาน KPI และตัวชี้วัดภาพรวมผู้บริหาร (Export PDF)"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>สรุปรายงาน KPI (PDF)</span>
+              </button>
+            )}
+
             {/* Export PDF Button (All or Selected) */}
             <button
               type="button"

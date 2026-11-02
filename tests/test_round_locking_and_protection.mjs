@@ -135,9 +135,11 @@ const versionJs = fs.readFileSync('src/version.js', 'utf8');
 const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
 
-assert(versionJs.includes("APP_VERSION = '2.18.0'"), 'src/version.js must be 2.18.0');
-assert(packageJson.version === '2.18.0', 'package.json version must be 2.18.0');
-assert(changelog.includes('## [2.18.0]'), 'CHANGELOG.md must document [2.18.0]');
+const verMatch = versionJs.match(/APP_VERSION = ['"]([^'"]+)['"]/);
+const curVer = verMatch ? verMatch[1] : '';
+assert(curVer, 'src/version.js must define APP_VERSION');
+assert.strictEqual(packageJson.version, curVer, 'package.json version must match src/version.js');
+assert(changelog.includes(`## [${curVer}]`), `CHANGELOG.md must document [${curVer}]`);
 console.log('  ✓ Version 2.18.0 synchronized in src/version.js, package.json, and CHANGELOG.md');
 
 console.log('\n======================================================');

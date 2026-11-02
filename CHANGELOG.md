@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.19.0] - 2026-11-02
+
+### Added
+- เพิ่มฟังก์ชันส่งออกรายงานสรุปผลการดำเนินงานและตัวชี้วัด KPI สำหรับผู้บริหารเป็นไฟล์ PDF ทางการ (**Executive KPI Summary & PDF Export**):
+  - เพิ่มปุ่มเด่นชัด **"สรุปรายงาน KPI (Export PDF)"** ในส่วนหัวของหน้า Dashboard (`DashboardView.jsx`) และในแถบเครื่องมือของตารางข้อมูล (`RecentSurveys.jsx`)
+  - รองรับการเลือกส่งออกรายงานแบบเฉพาะรอบการตรวจเยี่ยมปัจจุบัน (Active Round 1–18) หรือแบบภาพรวมรวมทุกรอบ (Consolidated All 18 Rounds)
+  - เพิ่มหน้าต่างพรีวิวรายงานมาตรฐาน A4 (`KpiSummaryReportModal.jsx`):
+    - **ส่วนหัวทางการ (Official Header)**: ตราสัญลักษณ์ กสทช. และ FORTH, ชื่อโครงการเต็ม, เลขที่สัญญา, ระบุรอบการตรวจเยี่ยม และเวลาจัดทำรายงาน
+    - **การ์ดสรุปตัวชี้วัดหลัก 5 ด้าน (Executive KPI Summary Cards)** เทียบกับเป้าหมายมาตรฐาน 197 สถานี: สถานีทั้งหมด (197), สำรวจแล้วเสร็จและร้อยละความคืบหน้า (X/197 - Y%), จำนวนและอัตราอนุญาตเข้าพื้นที่, จำนวนไม่อนุญาตเข้าพื้นที่, และจำนวนสถานีคงค้าง/รอตรวจ
+    - **กราฟวิเคราะห์สถิติความละเอียดสูง (Visual KPI Charts)** เรนเดอร์แบบ High-DPI Vector คมชัด:
+      - กราฟโดนัท (Donut Chart) แสดงสัดส่วนผลการสำรวจ (อนุญาต, ไม่อนุญาต, รอดำเนินการ)
+      - กราฟแท่งแนวนอน (Horizontal Bar Chart) เปรียบเทียบความคืบหน้ารายจังหวัดครบทั้ง 10 จังหวัดกับ Baseline
+    - **ตารางสรุปผลการดำเนินงานจำแนกรายจังหวัด (Provincial Breakdown Table)**: จัดลำดับ 10 จังหวัดตามขนาดสถานี แสดงจำนวนสถานีเป้าหมาย, ตรวจแล้ว, อนุญาต, ไม่อนุญาต, รอตรวจ, และแถบความคืบหน้า KPI (%) พร้อมแถวสรุปผลรวมทั้งสิ้น 197 สถานี
+    - **ภาคผนวกรายชื่อสถานี (Detailed Station Appendix)**: จัดกลุ่มตามจังหวัด แสดงตำบล/อำเภอ, สถานที่ติดตั้ง, สถานะการขออนุญาต และวันที่ลงตรวจ
+    - **ช่องลงนามทางการ (Executive Sign-off)**: สำหรับผู้จัดทำ, ผู้ตรวจสอบ และผู้อนุมัติรายงาน
+  - **การจัดรูปแบบตัวพิมพ์ภาษาไทยและเอกสารพร้อมพิมพ์ (Thai Typography & Print-Ready Formatting)**:
+    - ใช้งานฟอนต์ราชการ TH Sarabun New (`THSarabunNew.ttf` / `THSarabunNew-Bold.ttf`) และ Sarabun วรรณยุกต์และสระคมชัด ไม่เพี้ยน ไม่ต่างดาว
+    - รองรับการดาวน์โหลดไฟล์ `.pdf` โดยตรงผ่าน `html2canvas-pro` + `jspdf` และการสั่งพิมพ์ผ่าน Print Dialog (Ctrl+P) ด้วยสไตล์ Zero-Offset Print CSS ใน `src/index.css`
+
 ## [2.18.0] - 2026-10-30
 
 ### Added

@@ -55,9 +55,11 @@ const versionJs = fs.readFileSync('src/version.js', 'utf8');
 const packageJson = fs.readFileSync('package.json', 'utf8');
 const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
 
-assert(versionJs.includes("APP_VERSION = '2.18.0'"), 'src/version.js is at v2.18.0');
-assert(packageJson.includes('"version": "2.18.0"'), 'package.json is at v2.18.0');
-assert(changelog.includes('## [2.18.0]'), 'CHANGELOG.md has entry for v2.18.0');
+const verMatch = versionJs.match(/APP_VERSION = ['"]([^'"]+)['"]/);
+const curVer = verMatch ? verMatch[1] : '';
+assert(curVer, 'src/version.js must define APP_VERSION');
+assert(packageJson.includes(`"version": "${curVer}"`), `package.json must be at v${curVer}`);
+assert(changelog.includes(`## [${curVer}]`), `CHANGELOG.md must have entry for v${curVer}`);
 
 console.log('\n======================================================');
 if (failCount === 0) {

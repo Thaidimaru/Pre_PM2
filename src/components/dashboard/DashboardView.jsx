@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Radio, Bell } from 'lucide-react';
+import { RefreshCw, Radio, Bell, FileText } from 'lucide-react';
 import { ShinyText } from '@/components/ui/shiny-text';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +14,7 @@ import { fetchDashboardData, getCachedDashboardData, fetchStations, isRoundClose
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { KpiSummaryReportModal } from '@/components/export/KpiSummaryReportModal';
 
 const initialStats = { surveys: 0, stations: 197, allowed: 0, denied: 0 };
 
@@ -115,6 +116,7 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
   const [isInitialLoading, setIsInitialLoading] = useState(!hasExistingData);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newSurveyAlert, setNewSurveyAlert] = useState(null);
+  const [isKpiReportOpen, setIsKpiReportOpen] = useState(false);
   const prevCountRef = useRef(data.stats?.surveys || null);
 
   // Multi-Round Inspection Management: Default active cycle context to Round 1
@@ -344,6 +346,24 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Executive KPI Summary Report Export Button */}
+          <button
+            type="button"
+            onClick={() => setIsKpiReportOpen(true)}
+            className={cn(
+              'flex items-center gap-2 rounded-xl border px-3.5 sm:px-4 py-2 text-xs font-bold transition-all cursor-pointer shadow-xs',
+              isDark
+                ? 'border-cyan-500/40 bg-gradient-to-r from-blue-600/30 to-cyan-500/20 text-cyan-300 hover:from-blue-600/50 hover:to-cyan-500/40 hover:border-cyan-400 hover:text-white shadow-cyan-950/30'
+                : 'border-blue-300 bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-blue-500/20'
+            )}
+            title="สรุปรายงาน KPI (Export PDF) และวิเคราะห์สถิติผู้บริหาร"
+            aria-label="สรุปรายงาน KPI (Export PDF)"
+          >
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">สรุปรายงาน KPI (Export PDF)</span>
+            <span className="sm:hidden">รายงาน KPI (PDF)</span>
+          </button>
+
           {/* Simple Refresh Button */}
           <button
             type="button"
@@ -501,11 +521,21 @@ export function DashboardView({ onNavigate, onEditSurvey }) {
                 onRefresh={() => loadData(true)}
                 selectedRound={selectedRound}
                 onSelectRound={setSelectedRound}
+                onOpenKpiReport={() => setIsKpiReportOpen(true)}
               />
             </ErrorBoundary>
           </div>
         </>
       )}
+      {/* Executive KPI Summary Report Modal */}
+      <KpiSummaryReportModal
+        isOpen={isKpiReportOpen}
+        onClose={() => setIsKpiReportOpen(false)}
+        initialRound={selectedRound}
+        surveys={data.recent || []}
+        masterStations={masterStations}
+        stats={activeStats}
+      />
     </motion.main>
   );
 }
