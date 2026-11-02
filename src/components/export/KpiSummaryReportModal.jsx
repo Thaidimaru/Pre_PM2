@@ -955,10 +955,10 @@ export function KpiSummaryReportModal({
                 </div>
 
                 {/* Provincial Breakdown Table */}
-                <table className="w-full border-collapse border border-black text-[12px] leading-snug mb-3">
+                <table className="w-full border-collapse border border-black text-[12.5px] leading-normal mb-3.5">
                   <thead>
                     <tr className="bg-neutral-200/90 text-black font-bold border-b border-black text-center">
-                      <th className="border border-black py-1 px-1.5 w-10">ลำดับ</th>
+                      <th className="border border-black py-1.5 px-1.5 w-10">ลำดับ</th>
                       <th className="border border-black py-1 px-2 text-left">จังหวัด</th>
                       <th className="border border-black py-1 px-1.5 w-20">จำนวนสถานี (Baseline)</th>
                       <th className="border border-black py-1 px-1.5 w-18">สำรวจแล้ว (แห่ง)</th>
@@ -980,7 +980,7 @@ export function KpiSummaryReportModal({
                             idx % 2 === 0 ? 'bg-white' : 'bg-neutral-50/70'
                           )}
                         >
-                          <td className="border border-black py-1 px-1 font-semibold">{p.rank}</td>
+                          <td className="border border-black py-1.5 px-1 font-semibold">{p.rank}</td>
                           <td className="border border-black py-1 px-2 text-left font-bold text-neutral-900">
                             {p.name}
                           </td>
@@ -1036,51 +1036,24 @@ export function KpiSummaryReportModal({
                   </tbody>
                 </table>
 
-                {/* Operational Notes Section */}
-                <div className="border border-neutral-300 rounded p-2.5 bg-neutral-50 mb-4 text-[11.5px] leading-relaxed">
-                  <h4 className="font-bold text-neutral-900 mb-1">
-                    หมายเหตุและแนวทางการปฏิบัติงาน (Operational Notes & Guidelines):
-                  </h4>
-                  <p className="text-neutral-700">
-                    1. <strong>เกณฑ์การวัดผลสำเร็จ (KPI):</strong> ถือว่ารอบการตรวจเยี่ยมสำเร็จสมบูรณ์เมื่อจำนวนสถานีที่สำรวจแล้วเสร็จครบ 100% (197 สถานี)
-                  </p>
-                  <p className="text-neutral-700 mt-0.5">
-                    2. <strong>กรณีไม่อนุญาตเข้าพื้นที่:</strong> บันทึกรายละเอียดเหตุผลและข้อขัดข้องลงในระบบ เพื่อให้คณะทำงานและผู้ควบคุมงานร่วมพิจารณาแนวทางแก้ไขกับเจ้าของพื้นที่ต่อไป
-                  </p>
-                  <p className="text-neutral-700 mt-0.5">
-                    3. <strong>การควบคุมสิทธิ์รอบการสำรวจ:</strong> เมื่อรอบการตรวจเยี่ยมได้รับการตรวจสอบและลงตรวจครบ 197 สถานีแล้ว ผู้ดูแลระบบสามารถสั่งปิดรอบ (Lock Round) เพื่อล็อกข้อมูลเป็น Read-Only ตามระเบียบข้อบังคับ
-                  </p>
-                </div>
-
-                {/* Executive Sign-off Section */}
-                <div className="mt-4 pt-2 border-t border-neutral-300">
-                  <div className="grid grid-cols-3 gap-6 text-center text-[12px]">
-                    {/* Sign-off 1 */}
-                    <div className="flex flex-col items-center">
-                      <p className="font-semibold text-neutral-700 mb-9">ผู้จัดทำและรวบรวมรายงาน</p>
-                      <div className="w-40 border-b border-black mb-1" />
-                      <p className="font-bold text-black">(......................................................)</p>
-                      <p className="text-[11px] text-neutral-600 mt-0.5">เจ้าหน้าที่ระบบศูนย์ควบคุม Pre-PM</p>
-                      <p className="text-[10.5px] text-neutral-500">วันที่ ......../......../................</p>
-                    </div>
-
-                    {/* Sign-off 2 */}
-                    <div className="flex flex-col items-center">
-                      <p className="font-semibold text-neutral-700 mb-9">ผู้ตรวจสอบความถูกต้อง</p>
-                      <div className="w-40 border-b border-black mb-1" />
-                      <p className="font-bold text-black">(......................................................)</p>
-                      <p className="text-[11px] text-neutral-600 mt-0.5">วิศวกรผู้ควบคุมงานโครงการ</p>
-                      <p className="text-[10.5px] text-neutral-500">วันที่ ......../......../................</p>
-                    </div>
-
-                    {/* Sign-off 3 */}
-                    <div className="flex flex-col items-center">
-                      <p className="font-semibold text-neutral-700 mb-9">ผู้อนุมัติรายงาน</p>
-                      <div className="w-40 border-b border-black mb-1" />
-                      <p className="font-bold text-black">(......................................................)</p>
-                      <p className="text-[11px] text-neutral-600 mt-0.5">ผู้อำนวยการส่วนงาน / ผู้จัดการโครงการ</p>
-                      <p className="text-[10.5px] text-neutral-500">วันที่ ......../......../................</p>
-                    </div>
+                {/* Operational Notes & Guidelines Section */}
+                <div className="border border-neutral-300 rounded-lg p-3 bg-neutral-50/80 mb-3 text-[12px] leading-relaxed">
+                  <div className="bg-neutral-200/80 font-bold border border-neutral-300 px-2.5 py-1 text-[12.5px] text-black mb-2 rounded-xs">
+                    4. สรุปแนวทางปฏิบัติและข้อกำหนดการดำเนินงาน (Operational Guidelines & Standards)
+                  </div>
+                  <div className="space-y-1.5 text-neutral-800 text-[11.5px] px-1">
+                    <p>
+                      <strong>1. เกณฑ์การวัดผลสัมฤทธิ์ KPI:</strong> การดำเนินงานในรอบการตรวจเยี่ยมจะถือว่าเสร็จสมบูรณ์เมื่อจำนวนสถานีที่สำรวจแล้วเสร็จครบ 100% (197 จาก 197 สถานี)
+                    </p>
+                    <p>
+                      <strong>2. สถิติความยินยอมในพื้นที่:</strong> ผลการอนุญาตเข้าปฏิบัติงานและข้อจำกัดต่างๆ ได้รับการบันทึกตามข้อเท็จจริงหน้างานจริงร่วมกับผู้ดูแลสถานี/ผู้ใหญ่บ้าน
+                    </p>
+                    <p>
+                      <strong>3. การประสานงานกรณีไม่อนุญาต:</strong> รายการสถานีที่ไม่ได้รับความยินยอมจะถูกส่งต่อไปยังคณะทำงานโครงการเพื่อประสานงานระดับท้องถิ่นและวางแผนแก้ไขต่อไป
+                    </p>
+                    <p>
+                      <strong>4. มาตรการควบคุมสิทธิ์และการปิดรอบ (Round Locking):</strong> เมื่อตรวจเยี่ยมครบ 197 สถานีและผ่านการตรวจสอบ ผู้ดูแลระบบจะทำการล็อกรอบการตรวจเยี่ยมเป็นโหมดอ่านอย่างเดียว (Read-Only) เพื่อป้องกันการแก้ไขย้อนหลัง
+                    </p>
                   </div>
                 </div>
               </div>

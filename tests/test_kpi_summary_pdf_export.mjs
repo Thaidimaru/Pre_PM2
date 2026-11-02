@@ -84,6 +84,14 @@ assert(cssCode.includes('#kpi-report-modal-portal'), 'src/index.css must handle 
 assert(cssCode.includes("font-family: 'TH Sarabun New'"), 'src/index.css must define TH Sarabun New web font');
 console.log('  --> OK: Zero-offset print stylesheet and Thai typography verified');
 
+// 8. Verify Signature & Approval Block Completely Removed
+console.log('\n[Test 8] Verifying Signature & Approval Block Removal...');
+assert(!modalCode.includes('ผู้จัดทำและรวบรวมรายงาน'), 'Must not contain ผู้จัดทำและรวบรวมรายงาน');
+assert(!modalCode.includes('ผู้ตรวจสอบความถูกต้อง'), 'Must not contain ผู้ตรวจสอบความถูกต้อง');
+assert(!modalCode.includes('ผู้อนุมัติรายงาน'), 'Must not contain ผู้อนุมัติรายงาน');
+assert(!modalCode.includes('......................................................'), 'Must not contain dotted signature placeholders');
+console.log('  --> OK: 3-column signature block, placeholders, and top divider line completely removed');
+
 console.log('\n======================================================================');
-console.log(' [SUCCESS] ALL 7 VERIFICATION SUITES PASSED CLEANLY (100%)');
+console.log(' [SUCCESS] ALL 8 VERIFICATION SUITES PASSED CLEANLY (100%)');
 console.log('======================================================================');

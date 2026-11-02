@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.19.1] - 2026-11-02
+
+### Removed
+- ลบส่วนลงนามและอนุมัติ 3 คอลัมน์ (Signature & Approval Block) ออกจากเทมเพลตรายงาน KPI PDF (`src/components/export/KpiSummaryReportModal.jsx`):
+  - ลบช่องลงนาม "ผู้จัดทำและรวบรวมรายงาน" (เจ้าหน้าที่ระบบศูนย์ควบคุม Pre-PM)
+  - ลบช่องลงนาม "ผู้ตรวจสอบความถูกต้อง" (วิศวกรผู้ควบคุมงานโครงการ)
+  - ลบช่องลงนาม "ผู้อนุมัติรายงาน" (ผู้อำนวยการส่วนงาน / ผู้จัดการโครงการ)
+  - ลบเส้นประจุดไข่ปลาลงชื่อกำกับ, คำอธิบายตำแหน่ง, เส้นระบุวันที่ และเส้นคั่นด้านบนออกทั้งหมด
+
+### Changed
+- ปรับปรุงระยะห่างด้านล่าง (Bottom Spacing) และโครงสร้างหน้ากระดาษ A4 หน้าที่ 2 ใน `KpiSummaryReportModal.jsx`:
+  - เพิ่มความกว้างและความสบายตาของแถวตารางจำแนกรายจังหวัด (`py-1.5`) พร้อมตัวอักษรคมชัด
+  - ปรับปรุงบล็อก "สรุปแนวทางปฏิบัติและข้อกำหนดการดำเนินงาน" ให้มีเนื้อหาและขนาดที่สมดุลกับพื้นที่หน้า A4
+  - ป้องกันการเกิดพื้นที่ว่างมากเกินไป (Excessive Whitespace) และป้องกันการเกิดหน้าว่างส่วนท้าย (Trailing Blank Page) ในการ Export PDF หรือ Print
+
 ## [2.19.0] - 2026-11-02
 
 ### Added
